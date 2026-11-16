@@ -1,0 +1,51 @@
+# Render Blueprint: a free public demo of mahilaSathi. See docs/deploy-render.md.
+# Render free web services sleep after 15 minutes without traffic and have no persistent disk, so the database
+# starts empty on every start and the fictional demo accounts are recreated automatically (DEMO_AUTOSEED).
+services:
+  - type: web
+    name: mahilasathi
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: singapore # closest Render region to India
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DEMO_MODE
+        value: "true"
+      - key: DEMO_AUTOSEED
+        value: "true"
+      # Development adapters, allowed in production only with DEMO_MODE=true and labelled in the app:
+      # the sign-in code is shown on screen and SOS SMS are recorded, never sent.
+      - key: OTP_PROVIDER
+        value: mock
+      - key: SMS_PROVIDER
+        value: mock
+      - key: PUSH_PROVIDER
+        value: webpush
+      - key: DATABASE_PATH
+        value: /data/mahilasathi.db
+      - key: TRUST_PROXY
+        value: "1"
+      - key: LOG_LEVEL
+        value: info
+      # Secrets. Render generates these; the admin token is shown under Environment in the Render dashboard.
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_TOKEN
+        generateValue: true
+      # Asked for when the Blueprint is created (values are in your local, git-ignored .env.render).
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        sync: false
+      - key: GEOAPIFY_API_KEY
+        sync: false
+      - key: NEXCONN_APP_KEY
+        sync: false
+      - key: NEXCONN_APP_SECRET
+        sync: false

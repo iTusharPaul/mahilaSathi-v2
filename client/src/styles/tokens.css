@@ -1,0 +1,60 @@
+/*
+ * mahilaSathi design tokens. Values are RGB channels so Tailwind can apply opacity.
+ * Brand: plum #40234F, lavender #E9DDF2, coral #E77C72, background #F8F6F9, text #25212A,
+ * success #347D64, warning #D69B43. Red (danger) is reserved for real emergency states.
+ */
+:root {
+  color-scheme: light;
+  --color-bg: 248 246 249;
+  --color-surface: 255 255 255;
+  --color-surface-muted: 241 236 245;
+  --color-border: 226 219 232;
+  --color-fg: 37 33 42;
+  --color-fg-muted: 104 96 114;
+
+  --color-primary: 64 35 79;
+  --color-primary-fg: 255 255 255;
+  --color-primary-soft: 233 221 242;
+
+  --color-accent: 231 124 114;
+  --color-accent-soft: 251 228 225;
+
+  --color-success: 52 125 100;
+  --color-success-soft: 222 240 233;
+  --color-warning: 214 155 67;
+  --color-warning-strong: 133 89 22;
+  --color-warning-soft: 249 236 214;
+  --color-danger: 184 38 38;
+  --color-danger-fg: 255 255 255;
+  --color-danger-soft: 252 226 226;
+
+  --shadow-color: 40 20 52;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --color-bg: 22 18 26;
+  --color-surface: 33 27 39;
+  --color-surface-muted: 43 36 51;
+  --color-border: 61 52 70;
+  --color-fg: 241 236 245;
+  --color-fg-muted: 183 174 192;
+
+  --color-primary: 205 181 224;
+  --color-primary-fg: 42 23 54;
+  --color-primary-soft: 58 42 70;
+
+  --color-accent: 238 145 135;
+  --color-accent-soft: 72 40 44;
+
+  --color-success: 108 196 162;
+  --color-success-soft: 28 54 46;
+  --color-warning: 230 183 107;
+  --color-warning-strong: 236 196 130;
+  --color-warning-soft: 66 52 28;
+  --color-danger: 240 98 98;
+  --color-danger-fg: 30 8 8;
+  --color-danger-soft: 72 26 30;
+
+  --shadow-color: 0 0 0;
+}

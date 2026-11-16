@@ -1,0 +1,5 @@
+# Keep LF everywhere (the image is built on Linux; migrations are checksummed).
+* text=auto eol=lf
+*.png binary
+*.ico binary
+*.webp binary

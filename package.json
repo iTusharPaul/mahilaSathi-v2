@@ -1,0 +1,39 @@
+{
+  "name": "mahilasathi",
+  "version": "0.1.0",
+  "private": true,
+  "description": "NCR-wide women's night travel companion and community safety platform",
+  "type": "module",
+  "engines": {
+    "node": ">=20.11"
+  },
+  "workspaces": [
+    "shared",
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "npm run build -w shared && concurrently -n shared,server,client -c magenta,blue,green \"npm run dev -w shared\" \"npm run dev -w server\" \"npm run dev -w client\"",
+    "build": "npm run build -w shared && npm run build -w server && npm run build -w client",
+    "start": "node server/dist/index.js",
+    "typecheck": "npm run build -w shared && npm run typecheck -w server && npm run typecheck -w client && tsc -p tsconfig.tests.json",
+    "db:migrate": "npm run build -w shared && npm run db:migrate -w server",
+    "db:status": "npm run build -w shared && npm run db:status -w server",
+    "test": "npm run build -w shared && vitest run",
+    "test:watch": "vitest",
+    "check:secrets": "node scripts/check-client-secrets.mjs",
+    "check:providers": "npm run build -w shared && npm run check:providers -w server",
+    "demo:seed": "npm run build -w shared && npm run demo:seed -w server",
+    "demo:companion": "npm run build -w shared && npm run demo:companion -w server --",
+    "db:backup": "npm run build -w shared && npm run db:backup -w server --",
+    "demo:reset": "npm run build -w shared && npm run demo:reset -w server",
+    "coverage:assess": "npm run build -w shared && npm run coverage:assess -w server"
+  },
+  "devDependencies": {
+    "@types/supertest": "^6.0.2",
+    "concurrently": "^9.1.2",
+    "supertest": "^7.0.0",
+    "typescript": "~5.7.2",
+    "vitest": "^3.2.4"
+  }
+}

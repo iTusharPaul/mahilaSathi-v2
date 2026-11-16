@@ -1,0 +1,57 @@
+{
+  "datasetId": "geoboundaries-ind-adm2-9469f09",
+  "version": "2021-9469f09-s30m",
+  "geometry": {
+    "datasetId": "geoboundaries-ind-adm2-9469f09",
+    "name": "geoBoundaries gbOpen IND ADM2 (districts)",
+    "publisher": "geoBoundaries (William & Mary geoLab); underlying data: Pathways Data Pvt. Ltd., lgdirectory.gov.in",
+    "url": "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/IND/ADM2/geoBoundaries-IND-ADM2.geojson",
+    "license": "Open Data Commons Open Database License 1.0 (ODbL)",
+    "yearRepresented": "2021",
+    "boundaryId": "IND-ADM2-76128533",
+    "sourceSha256": "8bef6929fd65432e7dc775e7c44473e84efff064ebddbfd6b834e6291546db40",
+    "retrievedOn": "2026-11-12"
+  },
+  "constituents": {
+    "name": "NCR Planning Board: NCR constituent areas",
+    "url": "https://ncrpb.nic.in/ncrconstituent.html",
+    "checkedOn": "2026-11-12"
+  },
+  "processing": {
+    "simplification": "Douglas–Peucker, 30 m tolerance; coordinates rounded to 5 decimals (~1 m)",
+    "sourceVertices": 74979,
+    "outputVertices": 16591,
+    "outputSha256": "e227e2ec99543a60e52ba86eb7261251168170da5958d2992c8fde5947018d12"
+  },
+  "stateAreaCheck": [
+    {
+      "state": "delhi",
+      "computedKm2": 1488,
+      "ncrpbKm2": 1483,
+      "differencePct": 0.3
+    },
+    {
+      "state": "haryana",
+      "computedKm2": 25275,
+      "ncrpbKm2": 25327,
+      "differencePct": -0.2
+    },
+    {
+      "state": "uttar-pradesh",
+      "computedKm2": 15063,
+      "ncrpbKm2": 14826,
+      "differencePct": 1.6
+    },
+    {
+      "state": "rajasthan",
+      "computedKm2": 13398,
+      "ncrpbKm2": 13447,
+      "differencePct": -0.4
+    }
+  ],
+  "knownLimitations": [
+    "Charkhi Dadri (carved out of Bhiwani in 2016) is not a separate polygon in the source; it is covered by the Bhiwani polygon.",
+    "Alwar is the district as constituted when notified as part of NCR; districts carved out of it in 2023 are not separated.",
+    "District edges are simplified; points within a few hundred metres of an edge are reported as near a boundary."
+  ]
+}

@@ -1,0 +1,19 @@
+# Local production-like run:  docker compose up --build
+# Configure secrets in .env (see .env.example). The database persists in the "mahilasathi-data" volume.
+services:
+  mahilasathi:
+    build: .
+    image: mahilasathi:latest
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      PORT: 8080
+      DATABASE_PATH: /data/mahilasathi.db
+    ports:
+      - "8080:8080"
+    volumes:
+      - mahilasathi-data:/data
+    restart: unless-stopped
+
+volumes:
+  mahilasathi-data:

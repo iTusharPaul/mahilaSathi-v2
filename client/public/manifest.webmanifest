@@ -1,0 +1,20 @@
+{
+  "name": "mahilaSathi",
+  "short_name": "mahilaSathi",
+  "description": "Safer journeys. Stronger together. A night travel companion for women across Delhi NCR.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#16121A",
+  "theme_color": "#40234F",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }],
+  "shortcuts": [
+    {
+      "name": "SOS",
+      "short_name": "SOS",
+      "description": "Raise an SOS to your Guardian Circle and emergency contacts",
+      "url": "/sos?shortcut=1",
+      "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    }
+  ]
+}
