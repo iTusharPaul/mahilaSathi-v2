@@ -109,7 +109,7 @@ export function SignInPage() {
           {config.data?.demoMode ? (
             <div className="rounded-2xl border border-warning/40 bg-warning-soft/60 p-4 text-sm">
               <p className="flex items-center gap-1.5 font-semibold"><FlaskConical className="h-4 w-4" aria-hidden />Demo accounts</p>
-              <p className="mt-1 text-fg-muted">Fictional people for trying mahilaSathi, created with <code>npm run demo:seed</code>. Tap one to fill in its number.</p>
+              <p className="mt-1 text-fg-muted">Fictional people for trying mahilaSathi. Lotus-42 travels and Jasmine-17 is her guardian: sign in to each on a different device to see an SOS arrive. Tap one to fill in its number.</p>
               <div className="mt-3 grid gap-2">
                 {DEMO_ACCOUNTS.map((a) => (
                   <button key={a.handle} type="button" onClick={() => setPhone(a.phone)} className="flex items-center justify-between rounded-xl bg-surface px-3 py-2 text-left hover:bg-surface-muted">

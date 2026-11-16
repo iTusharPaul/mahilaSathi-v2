@@ -27,8 +27,10 @@ services:
         value: webpush
       - key: DATABASE_PATH
         value: /data/mahilasathi.db
+      # Visitors reach the app through Cloudflare and then Render's proxy: two hops. With 1, every visitor
+      # behind the same Cloudflare server would share one rate limit.
       - key: TRUST_PROXY
-        value: "1"
+        value: "2"
       - key: LOG_LEVEL
         value: info
       # Secrets. Render generates these; the admin token is shown under Environment in the Render dashboard.

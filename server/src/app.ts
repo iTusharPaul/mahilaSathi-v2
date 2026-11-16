@@ -5,7 +5,7 @@ import express, { type Express } from 'express';
 import helmet from 'helmet';
 import type { Logger } from 'pino';
 import { pinoHttp } from 'pino-http';
-import { API_PREFIX } from '@mahilasathi/shared';
+import { API_PREFIX, DEMO_ACCOUNTS, normalizeIndianMobile } from '@mahilasathi/shared';
 import type { AppConfig } from './config/index.js';
 import type { Db } from './db/connection.js';
 import { attachSession } from './middleware/auth.js';
@@ -121,6 +121,7 @@ export function createApp(deps: AppDeps): Express & { services: AppServices } {
     otpProvider: deps.otpProvider ?? createOtpProvider(config),
     secret: config.jwtSecret,
     clock,
+    sharedDemoPhones: config.demoMode ? new Set(DEMO_ACCOUNTS.map((a) => normalizeIndianMobile(a.phone)!)) : undefined,
   });
   const userService = createUserService({ users, contacts: createEmergencyContactRepository(db), audit, registry, clock });
   const geocoder =

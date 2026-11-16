@@ -84,6 +84,24 @@ describe('demo mode', () => {
     for (const m of sms) expect(m.body.startsWith('DEMO, not a real emergency.')).toBe(true);
   });
 
+  it('lets several people sign in to a shared demo account at once', async () => {
+    const { app } = demoApp();
+    await app.services.demo.seed();
+    const phone = DEMO_ACCOUNTS[0]!.phone;
+    // Four people ask for a code within seconds: no per-number cooldown or 15-minute cap for demo numbers…
+    const codes = [];
+    for (let i = 0; i < 4; i++) codes.push((await request(app).post('/api/auth/send-otp').send({ phone }).expect(201)).body);
+    // …and a later request doesn't cancel an earlier person's code.
+    for (const c of codes) {
+      const res = await request(app).post('/api/auth/verify-otp').send({ otpSessionId: c.otpSessionId, code: c.delivery.devCode }).expect(200);
+      expect(res.body.user.communityHandle).toBe('Lotus-42');
+    }
+    // Ordinary numbers keep the normal limits.
+    const other = '9811122233';
+    await request(app).post('/api/auth/send-otp').send({ phone: other }).expect(201);
+    await request(app).post('/api/auth/send-otp').send({ phone: other }).expect(429);
+  });
+
   it('labels nothing as a demo outside demo mode', async () => {
     const { app } = createTestApp({ routingProviders: { places: null, cameras: null } });
     const user = await signIn(app);

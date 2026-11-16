@@ -27,6 +27,12 @@ export interface AuthDeps {
   otpProvider: OtpProvider;
   secret: string;
   clock: Clock;
+  /**
+   * Fictional demo numbers shared by everyone trying a demo server (DEMO_MODE only). Several people may sign in
+   * to them at once, so they skip the per-number resend limits and don't cancel each other's codes. The per-IP
+   * limit still applies.
+   */
+  sharedDemoPhones?: ReadonlySet<string>;
 }
 
 export interface AuthenticatedSession {
@@ -42,7 +48,8 @@ export function createAuthService(deps: AuthDeps) {
   return {
     async sendOtp(phone: string, ctx: { requestId?: string } = {}): Promise<SendOtpResponse> {
       const now = clock();
-      const recent = authRepo.recentOtpSessions(phone, new Date(now.getTime() - OTP_POLICY.windowMs).toISOString());
+      const shared = deps.sharedDemoPhones?.has(phone) ?? false;
+      const recent = shared ? [] : authRepo.recentOtpSessions(phone, new Date(now.getTime() - OTP_POLICY.windowMs).toISOString());
 
       const last = recent[0];
       if (last) {
@@ -60,7 +67,7 @@ export function createAuthService(deps: AuthDeps) {
       const id = crypto.randomUUID();
       const code = randomNumericCode(OTP_LENGTH);
       const nowIso = now.toISOString();
-      authRepo.invalidateActiveOtpSessions(phone, nowIso);
+      if (!shared) authRepo.invalidateActiveOtpSessions(phone, nowIso);
       authRepo.insertOtpSession({
         id,
         phone_e164: phone,
