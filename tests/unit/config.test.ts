@@ -49,6 +49,13 @@ describe('loadConfig', () => {
     expect(problemsOf({ TRUST_PROXY: 'lots' })).toEqual([expect.stringContaining('TRUST_PROXY')]);
   });
 
+  it('knows when the database is streamed to off-site storage', () => {
+    expect(loadConfig({}).dataReplicated).toBe(false);
+    expect(loadConfig({ DATA_REPLICATION: 'none' }).dataReplicated).toBe(false);
+    expect(loadConfig({ DATA_REPLICATION: 'litestream' }).dataReplicated).toBe(true);
+    expect(problemsOf({ DATA_REPLICATION: 'rsync' })).toEqual([expect.stringContaining('DATA_REPLICATION')]);
+  });
+
   it('accepts only a Google OAuth web client id', () => {
     expect(loadConfig({}).google.clientId).toBeNull();
     expect(loadConfig({ GOOGLE_CLIENT_ID: '' }).google.clientId).toBeNull();

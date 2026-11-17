@@ -67,6 +67,8 @@ const rawEnvSchema = z.object({
     z.string().regex(/^[\w-]+\.apps\.googleusercontent\.com$/, 'must be an OAuth client id ending in .apps.googleusercontent.com').optional(),
   ),
   DEMO_AUTOSEED: booleanFlag(false),
+  /** Set by docker/start.sh: 'litestream' when the database is being streamed to Supabase Storage. */
+  DATA_REPLICATION: z.preprocess((v) => (isBlank(v) ? undefined : String(v).trim().toLowerCase()), z.enum(['none', 'litestream']).default('none')),
   CLIENT_IP_HEADER: z.preprocess(
     (v) => (isBlank(v) ? undefined : String(v).trim().toLowerCase()),
     z.string().regex(/^[a-z0-9-]+$/, 'must be a header name such as cf-connecting-ip').optional(),
@@ -93,6 +95,8 @@ export interface AppConfig {
   google: { clientId: string | null };
   /** Seed the demo accounts at startup (demo hosts whose disk resets). Only true when demoMode is. */
   demoAutoSeed: boolean;
+  /** True when Litestream is streaming the database to off-site storage (see docker/start.sh). */
+  dataReplicated: boolean;
   /** Reverse-proxy hops to trust in production (for the client IP used by rate limits). */
   trustProxy: number;
   /** Header set by the edge proxy with the visitor's IP (e.g. cf-connecting-ip). Overrides trust-proxy for rate limits. */
@@ -220,6 +224,7 @@ export function loadConfig(env: Record<string, string | undefined>): AppConfig {
     demoMode: e.DEMO_MODE,
     google: { clientId: e.GOOGLE_CLIENT_ID ?? null },
     demoAutoSeed: e.DEMO_MODE && e.DEMO_AUTOSEED,
+    dataReplicated: e.DATA_REPLICATION === 'litestream',
     trustProxy: e.TRUST_PROXY,
     clientIpHeader: e.CLIENT_IP_HEADER ?? null,
     communityModerationEnabled: e.COMMUNITY_MODERATION_ENABLED,

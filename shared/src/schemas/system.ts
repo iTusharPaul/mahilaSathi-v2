@@ -57,6 +57,11 @@ export const publicConfigSchema = z.object({
     /** 'demo_accounts_only': phone codes are shown on screen, so only the fictional demo accounts may use them. */
     phoneSignIn: z.enum(['open', 'demo_accounts_only']),
   }),
+  /**
+   * 'replicated': every change is streamed to off-site storage (Litestream to Supabase Storage) and restored on
+   * start. 'local': only the server's own disk, which some hosts (Render free) wipe on every restart.
+   */
+  dataStorage: z.enum(['replicated', 'local']),
   providers: z.object({
     geoapify: providerStatusSchema,
     nexconn: providerStatusSchema,

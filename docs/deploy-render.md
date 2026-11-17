@@ -10,12 +10,15 @@ but never sent, and every SOS is labelled "DEMO, not a real emergency".
 |---|---|
 | Link | `https://<name>.onrender.com`, HTTPS included |
 | Sleep | After 15 minutes with no visitors. The next visit wakes it in about a minute |
-| Disk | **Not kept.** The database starts empty after every deploy, restart or sleep |
+| Disk | **Not kept.** Without a backup, the database starts empty after every deploy, restart or sleep |
 | Hours | 750 a month per workspace: enough for one service running all month |
 
-Because the disk resets, `DEMO_AUTOSEED=true` recreates the three fictional demo accounts (Lotus-42,
-Jasmine-17, Neem-08), their Guardian Circle and neighbourhood channels at every start. **Accounts testers create
-themselves disappear when the server restarts or sleeps.** The demo accounts are always there.
+**To keep data, set up the free Supabase Storage backup** ([persistent-storage.md](persistent-storage.md)).
+Litestream then streams every change to a bucket and restores it on every start. Without it, **accounts testers
+create disappear when the server restarts or sleeps.**
+
+`DEMO_AUTOSEED=true` creates the three fictional demo accounts (Lotus-42, Jasmine-17, Neem-08), their Guardian
+Circle and neighbourhood channels at start if they are missing, so they are always there.
 
 Source: [Render free instances](https://render.com/docs/free).
 
@@ -73,26 +76,28 @@ You need a GitHub account and a Render account (sign up at [render.com](https://
 
 To avoid the one-minute wake-up for the first visitor, a free uptime monitor (for example cron-job.org or
 UptimeRobot) can request `/api/health` every 10 minutes. One always-on service uses about 744 of the 750 free
-hours, so do this for one service only. It also keeps testers' accounts longer, since the disk resets only on
-restarts and deploys.
+hours, so do this for one service only. Without the Supabase backup, it also keeps testers' accounts longer,
+since the disk then resets only on restarts and deploys.
 
 ## Free-tier limits of the providers
 
 - **Geoapify** has a daily request allowance on its free plan. If it runs out, place search falls back to
   the built-in NCR list and plans say place data is unavailable. Nothing breaks.
 - **Nexconn** has free-tier limits on users and messages. A fresh database creates new chat users after each
-  restart.
+  restart without the Supabase backup.
 
 ## Real sign-ups with Google
 
 To let real people sign in (for example, to show traction), add `GOOGLE_CLIENT_ID` under **Environment**.
 [google-sign-in.md](google-sign-in.md) has the steps. Then phone sign-in is limited to the demo accounts, and
 Google users are treated as real people: their SOS alerts aren't labelled demo, but emergency SMS is still
-simulated. Read the next section first: on the free plan, their accounts disappear on every restart.
+simulated. Set up the Supabase backup first, or their accounts disappear on every restart.
 
 ## Need data that survives restarts?
 
 The free plan can't keep a disk. Options, in order of effort:
+- **Supabase Storage backup with Litestream** (free, already built in): set the `SUPABASE_*` variables. See
+  [persistent-storage.md](persistent-storage.md).
 - **Render Starter plan with a persistent disk** at `/data` (paid). Remove `DEMO_AUTOSEED` if you want
   only real data.
 - **A small VM** (for example Oracle Cloud Always Free) running `docker compose up -d` behind Caddy for HTTPS.

@@ -354,6 +354,7 @@ All variables are read by the **server** only. See [.env.example](.env.example) 
 | `PUSH_PROVIDER` | no | `none` (default) or `webpush` (Web Push standard). With `webpush`, set `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` (`npx web-push generate-vapid-keys`). `VAPID_SUBJECT` (a `mailto:` or `https:` contact) is optional |
 | `SMS_PROVIDER` | no | SMS to emergency contacts during an SOS. `none` (default): nothing is sent and SOS screens say so. `mock`: a labelled development adapter that records the text locally and sends nothing (refused in production unless `DEMO_MODE=true`). No real SMS provider is integrated |
 | `DEMO_MODE` | no | Turns on demo mode: `npm run demo:seed` and `demo:companion` work, the sign-in screen lists the demo accounts, the header shows "Demo mode", and the mock OTP/SMS adapters are allowed in production. Required in production until a real OTP provider exists. Every SOS is then labelled a demo, whoever raises it, and per-IP rate limits (except map tiles) are 10 times higher, because testers often share one network |
+| `SUPABASE_PROJECT_REF`, `SUPABASE_S3_REGION`, `SUPABASE_S3_ACCESS_KEY_ID`, `SUPABASE_S3_SECRET_ACCESS_KEY`, `SUPABASE_S3_BUCKET` | no | Docker image only. Litestream streams the SQLite database to a Supabase Storage bucket (default `mahilasathi-db`) and restores it on start, so data survives hosts without a disk such as Render free. If the access key is set, the others are required. See [docs/persistent-storage.md](docs/persistent-storage.md) |
 | `DEMO_AUTOSEED` | no | With `DEMO_MODE=true`, creates the demo accounts at every start. For hosts whose disk resets (Render free). Default `false` |
 | `CLIENT_IP_HEADER` | no | A header the edge proxy sets with the visitor's IP, used for rate limits instead of `TRUST_PROXY` (e.g. `cf-connecting-ip` on Render). Only when every request passes through that proxy |
 | `TRUST_PROXY` | no | Production only: reverse-proxy hops in front of the server, used for per-IP rate limits. Default `1` |
@@ -521,8 +522,9 @@ The browser only receives the app key and a per-user token, never the secret. Wi
 ## Deployment
 
 **Free public demo link:** [docs/deploy-render.md](docs/deploy-render.md) deploys to Render's free plan with
-`render.yaml`. The demo accounts are recreated on every start (`DEMO_AUTOSEED=true`), because the free plan's
-disk resets.
+`render.yaml`. The free plan's disk resets, so the database is backed up continuously to Supabase Storage with
+Litestream and restored on every start ([docs/persistent-storage.md](docs/persistent-storage.md)). The demo
+accounts are recreated if missing (`DEMO_AUTOSEED=true`).
 
 The app ships as **one container**: Express serves the API and the built client on one port. It uses SQLite on a persistent volume.
 
@@ -566,6 +568,7 @@ On startup it applies migrations and loads the NCR dataset.
 | Data classification and retention | [docs/data-classification.md](docs/data-classification.md) |
 | Free public demo on Render | [docs/deploy-render.md](docs/deploy-render.md) |
 | Sign in with Google (setup, what is stored, usage numbers) | [docs/google-sign-in.md](docs/google-sign-in.md) |
+| Keeping data on Render free (Litestream to Supabase Storage) | [docs/persistent-storage.md](docs/persistent-storage.md) |
 
 ## Phase 6 evidence
 

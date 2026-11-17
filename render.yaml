@@ -1,6 +1,8 @@
 # Render Blueprint: a free public demo of mahilaSathi. See docs/deploy-render.md.
-# Render free web services sleep after 15 minutes without traffic and have no persistent disk, so the database
-# starts empty on every start and the fictional demo accounts are recreated automatically (DEMO_AUTOSEED).
+# Render free web services sleep after 15 minutes without traffic and have no persistent disk. With the
+# SUPABASE_S3_* variables set, the database is streamed to a Supabase Storage bucket and restored on every start
+# (docs/persistent-storage.md); without them it starts empty each time. Either way the fictional demo accounts
+# are (re)created automatically (DEMO_AUTOSEED).
 services:
   - type: web
     name: mahilasathi
@@ -56,3 +58,15 @@ services:
       # Sign in with Google (docs/google-sign-in.md). Leave blank to keep phone sign-in only.
       - key: GOOGLE_CLIENT_ID
         sync: false
+      # Keep data across restarts: Litestream backup to Supabase Storage (docs/persistent-storage.md).
+      # Leave the access key blank to run without a backup.
+      - key: SUPABASE_PROJECT_REF
+        sync: false
+      - key: SUPABASE_S3_REGION
+        sync: false
+      - key: SUPABASE_S3_ACCESS_KEY_ID
+        sync: false
+      - key: SUPABASE_S3_SECRET_ACCESS_KEY
+        sync: false
+      - key: SUPABASE_S3_BUCKET
+        value: mahilasathi-db

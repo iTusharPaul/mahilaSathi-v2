@@ -33,6 +33,14 @@ COPY server server
 COPY client client
 RUN npm run build
 
+# ─── Litestream (optional backup of the database to Supabase Storage) ────────
+# A pinned release, checked against the sha256 in the release's checksums.txt. docker/start.sh only runs it
+# when the SUPABASE_S3_* variables are set (docs/persistent-storage.md).
+FROM debian:bookworm-slim AS litestream
+ARG LITESTREAM_VERSION=0.5.18
+ADD --checksum=sha256:d3687b9fd0f2e9426bbd3da828429ff3f1dfc5c9b74d54fdf028e4ee510e7dea   https://github.com/benbjohnson/litestream/releases/download/v${LITESTREAM_VERSION}/litestream-${LITESTREAM_VERSION}-linux-x86_64.tar.gz   /tmp/litestream.tar.gz
+RUN tar -xzf /tmp/litestream.tar.gz -C /usr/local/bin litestream && /usr/local/bin/litestream version
+
 # ─── Runtime ──────────────────────────────────────────────────────────────────
 FROM node:22-bookworm-slim AS runtime
 ENV NODE_ENV=production \
@@ -49,6 +57,9 @@ COPY --from=build /app/client/package.json client/package.json
 COPY --from=build /app/client/dist client/dist
 # Migrations and the NCR boundary dataset are read at startup.
 COPY database database
+COPY --from=litestream /usr/local/bin/litestream /usr/local/bin/litestream
+COPY docker/litestream.yml docker/start.sh docker/
+RUN chmod 0755 docker/start.sh
 # SQLite lives on a mounted volume so data survives redeploys. Run as the unprivileged "node" user.
 RUN mkdir -p /data && chown node:node /data
 USER node
@@ -56,4 +67,5 @@ VOLUME ["/data"]
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||8080)+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
-CMD ["node", "server/dist/index.js"]
+# Restores the database from Supabase Storage first when it is configured; otherwise just starts the server.
+CMD ["sh", "docker/start.sh"]

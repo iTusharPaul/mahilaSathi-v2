@@ -107,8 +107,8 @@ export function SignInPage() {
               {googleClientId ? (
                 <>
                   Continue with Google to use mahilaSathi as yourself. Emergency SMS is simulated on this server: no text
-                  message reaches a real phone, so call your contacts yourself in an emergency. Data may be reset while the
-                  app is in testing.
+                  message reaches a real phone, so call your contacts yourself in an emergency.
+                  {config.data.dataStorage === 'replicated' ? null : ' Data may be reset while the app is in testing.'}
                 </>
               ) : (
                 <>

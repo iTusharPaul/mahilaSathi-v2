@@ -72,6 +72,9 @@ describe('Sign in with Google', () => {
     await request(app).post('/api/auth/google').send({ credential: 'eyJhbGciOiJSUzI1NiJ9.payload-x.signature' }).expect(404);
     const config = publicConfigSchema.parse((await request(app).get('/api/config').expect(200)).body);
     expect(config.auth).toEqual({ googleClientId: null, phoneSignIn: 'open' });
+    expect(config.dataStorage).toBe('local');
+    const backedUp = createTestApp({ env: { DATA_REPLICATION: 'litestream' } }).app;
+    expect(publicConfigSchema.parse((await request(backedUp).get('/api/config').expect(200)).body).dataStorage).toBe('replicated');
   });
 
   it('limits development phone sign-in to the demo accounts once Google is on', async () => {
