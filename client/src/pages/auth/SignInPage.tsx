@@ -136,6 +136,9 @@ export function SignInPage() {
               <span className="mt-1.5 flex items-center gap-2">
                 <FlaskConical className="h-4 w-4 text-warning-strong" aria-hidden />
                 <strong className="font-mono text-lg tracking-[0.3em] text-fg">{otp.delivery.devCode}</strong>
+                <Button type="button" size="sm" variant="secondary" className="ml-auto" onClick={() => setCode(otp.delivery.devCode ?? '')}>
+                  Fill in code
+                </Button>
               </span>
             </Notice>
           ) : null}

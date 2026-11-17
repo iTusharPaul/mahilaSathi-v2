@@ -30,9 +30,11 @@ Source: [Render free instances](https://render.com/docs/free).
 - **Shared demo accounts.** Many people can sign in to Lotus-42, Jasmine-17 or Neem-08 at once. Demo numbers
   skip the per-number code limits, and a new code doesn't cancel someone else's. Other numbers keep the normal
   limits.
-- **Per-visitor rate limits.** Visitors reach the app through Cloudflare and Render's proxy, so `render.yaml`
-  sets `TRUST_PROXY=2`. With `1`, everyone behind the same Cloudflare server would share one limit. If your
-  Blueprint doesn't sync this automatically, set it under Environment in the Render dashboard.
+- **Per-visitor rate limits.** Render serves through Cloudflare, which puts each visitor's address in the
+  `CF-Connecting-IP` header and overwrites any value a client sends. `render.yaml` sets
+  `CLIENT_IP_HEADER=cf-connecting-ip`, so each visitor gets their own limit. Counting proxy hops
+  (`TRUST_PROXY`) gave proxy addresses on Render, so visitors shared limits. If your Blueprint doesn't sync
+  this automatically, add it under Environment in the Render dashboard.
 - **Secrets stay server-side.** Render generates `JWT_SECRET` and `ADMIN_TOKEN`. Provider keys are entered in
   the Render dashboard and never committed.
 

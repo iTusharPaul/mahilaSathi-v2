@@ -63,6 +63,10 @@ const rawEnvSchema = z.object({
   SMS_PROVIDER: optionalString,
   DEMO_MODE: booleanFlag(false),
   DEMO_AUTOSEED: booleanFlag(false),
+  CLIENT_IP_HEADER: z.preprocess(
+    (v) => (isBlank(v) ? undefined : String(v).trim().toLowerCase()),
+    z.string().regex(/^[a-z0-9-]+$/, 'must be a header name such as cf-connecting-ip').optional(),
+  ),
   TRUST_PROXY: z.preprocess((v) => (isBlank(v) ? 1 : Number(v)), z.number().int().min(0).max(10)),
   COMMUNITY_MODERATION_ENABLED: booleanFlag(true),
 });
@@ -85,6 +89,8 @@ export interface AppConfig {
   demoAutoSeed: boolean;
   /** Reverse-proxy hops to trust in production (for the client IP used by rate limits). */
   trustProxy: number;
+  /** Header set by the edge proxy with the visitor's IP (e.g. cf-connecting-ip). Overrides trust-proxy for rate limits. */
+  clientIpHeader: string | null;
   communityModerationEnabled: boolean;
   geoapify: { apiKey: string | null };
   /** apiHosts: primary then backup, per Nexconn's documented data-centre base URLs. */
@@ -208,6 +214,7 @@ export function loadConfig(env: Record<string, string | undefined>): AppConfig {
     demoMode: e.DEMO_MODE,
     demoAutoSeed: e.DEMO_MODE && e.DEMO_AUTOSEED,
     trustProxy: e.TRUST_PROXY,
+    clientIpHeader: e.CLIENT_IP_HEADER ?? null,
     communityModerationEnabled: e.COMMUNITY_MODERATION_ENABLED,
     geoapify: { apiKey: e.GEOAPIFY_API_KEY ?? null },
     nexconn: {

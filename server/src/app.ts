@@ -1,3 +1,4 @@
+import net from 'node:net';
 import fs from 'node:fs';
 import path from 'node:path';
 import cors from 'cors';
@@ -207,6 +208,16 @@ export function createApp(deps: AppDeps): Express & { services: AppServices } {
   app.disable('x-powered-by');
   app.set('trust proxy', config.isProduction ? config.trustProxy : false);
 
+  if (config.clientIpHeader) {
+    // Behind an edge proxy that sets the visitor's address itself (Cloudflare's CF-Connecting-IP overwrites any
+    // value the client sends), use it for per-IP rate limits instead of counting X-Forwarded-For hops.
+    const header = config.clientIpHeader;
+    app.use((req, _res, next) => {
+      const v = req.header(header)?.trim();
+      if (v && net.isIP(v)) Object.defineProperty(req, 'ip', { value: v, configurable: true, enumerable: true });
+      next();
+    });
+  }
   app.use(requestId);
   app.use(
     pinoHttp({

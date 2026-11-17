@@ -10,6 +10,24 @@ with other travelling women only with mutual consent, join neighbourhood communi
 > mahilaSathi provides context and assistance. It never guarantees personal safety and is not a substitute
 > for emergency services. In an emergency in India, call **112**.
 
+## Try it live
+
+**https://mahilasathi.onrender.com** is a public demo with fictional accounts. No SMS is sent and nobody
+outside the app is alerted. If nobody has used it for 15 minutes, the first visit takes about a minute to wake
+the server (free hosting).
+
+**A 2-minute tour, on two phones or browser windows:**
+1. **Phone A:** sign in as **Lotus-42**. Tap the account on the sign-in screen, then **Fill in code**.
+2. **Phone B:** sign in as **Jasmine-17**, Lotus's guardian.
+3. **Phone A, Plan:** tap **Try an example walk**, then **Compare routes**. You get real routes with a Night
+   Activity Score and the reasons behind it.
+4. **Phone A:** hold the **SOS** button for 1.5 seconds. Within 15 seconds, Phone B shows
+   "DEMO SOS (not real) from Lotus Demo". Respond from Phone B, and Lotus sees the response.
+5. **Community:** each phone has the Guardian Circle chat and neighbourhood channels (Nexconn).
+
+Data resets whenever the server restarts. The demo accounts are always recreated. For running it yourself, see
+[Quick start](#quick-start-demo) and [docs/deploy-render.md](docs/deploy-render.md).
+
 ## Status
 
 | Phase | Scope | State |
@@ -25,8 +43,8 @@ with other travelling women only with mutual consent, join neighbourhood communi
 The full plan and the inspection notes for the previous prototype are in
 [docs/00-current-state-and-plan.md](docs/00-current-state-and-plan.md).
 
-> **Production readiness, honestly.** Everything above works end to end locally, including Web Push
-> notifications. One provider a public launch needs doesn't exist yet: a real **OTP/SMS provider**. The
+> **Production readiness, honestly.** Everything above works end to end, locally and on the
+> [public demo](#try-it-live), including Web Push notifications. One provider a public launch needs doesn't exist yet: a real **OTP/SMS provider**. The
 > server therefore refuses to start in production without `DEMO_MODE=true`. Both development adapters are
 > labelled on screen: OTP codes are shown in the app, and SMS is recorded in Moderation → SMS outbox. Treat
 > any deployment today as a demo or pilot, not a public safety service.
@@ -336,6 +354,7 @@ All variables are read by the **server** only. See [.env.example](.env.example) 
 | `SMS_PROVIDER` | no | SMS to emergency contacts during an SOS. `none` (default): nothing is sent and SOS screens say so. `mock`: a labelled development adapter that records the text locally and sends nothing (refused in production unless `DEMO_MODE=true`). No real SMS provider is integrated |
 | `DEMO_MODE` | no | Turns on demo mode: `npm run demo:seed` and `demo:companion` work, the sign-in screen lists the demo accounts, the header shows "Demo mode", and the mock OTP/SMS adapters are allowed in production. Required in production until a real OTP provider exists. Every SOS is then labelled a demo, whoever raises it |
 | `DEMO_AUTOSEED` | no | With `DEMO_MODE=true`, creates the demo accounts at every start. For hosts whose disk resets (Render free). Default `false` |
+| `CLIENT_IP_HEADER` | no | A header the edge proxy sets with the visitor's IP, used for rate limits instead of `TRUST_PROXY` (e.g. `cf-connecting-ip` on Render). Only when every request passes through that proxy |
 | `TRUST_PROXY` | no | Production only: reverse-proxy hops in front of the server, used for per-IP rate limits. Default `1` |
 | `COMMUNITY_MODERATION_ENABLED` | no | Default `true` |
 

@@ -3,7 +3,7 @@ import path from 'node:path';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { apiErrorSchema, healthResponseSchema, publicConfigSchema, readyResponseSchema } from '@mahilasathi/shared';
-import { MIGRATIONS_DIR } from '../../server/src/config/index.js';
+import { MIGRATIONS_DIR, loadConfig } from '../../server/src/config/index.js';
 import { createTestApp, makeTempDir } from '../helpers/testApp.js';
 
 function fakeClientDist(): string {
@@ -159,5 +159,29 @@ describe('single deployable', () => {
     const { app } = createTestApp();
     const res = await request(app).get('/').expect(503);
     expect(res.text).toMatch(/client is not built/);
+  });
+});
+
+describe('client IP header (CLIENT_IP_HEADER)', () => {
+  const remaining = (res: request.Response) => Number(/remaining=(\d+)/.exec(res.headers['ratelimit'] ?? '')?.[1]);
+
+  it('gives each visitor their own rate limit, keyed by the edge proxy header', async () => {
+    const { app } = createTestApp({ env: { CLIENT_IP_HEADER: 'CF-Connecting-IP' } });
+    const a1 = await request(app).get('/api/auth/me').set('CF-Connecting-IP', '203.0.113.7');
+    const a2 = await request(app).get('/api/auth/me').set('CF-Connecting-IP', '203.0.113.7');
+    const b1 = await request(app).get('/api/auth/me').set('CF-Connecting-IP', '2001:db8::1');
+    expect(remaining(a2)).toBe(remaining(a1) - 1);
+    expect(remaining(b1)).toBe(remaining(a1));
+  });
+
+  it('ignores values that are not IP addresses', async () => {
+    const { app } = createTestApp({ env: { CLIENT_IP_HEADER: 'cf-connecting-ip' } });
+    const first = await request(app).get('/api/auth/me').set('CF-Connecting-IP', 'not-an-ip');
+    const second = await request(app).get('/api/auth/me').set('CF-Connecting-IP', 'also; bad');
+    expect(remaining(second)).toBe(remaining(first) - 1); // both fell back to the socket address
+  });
+
+  it('rejects a header name that is not a plain token', () => {
+    expect(() => loadConfig({ CLIENT_IP_HEADER: 'x forwarded' })).toThrow(/CLIENT_IP_HEADER/);
   });
 });

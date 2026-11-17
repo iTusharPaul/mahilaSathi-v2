@@ -1,6 +1,6 @@
 import { RANKINGS, type Ranking, type RoutePlan, type TravelMode } from '@mahilasathi/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowUpDown, Car, Compass, Footprints, Info } from 'lucide-react';
+import { ArrowUpDown, Car, Compass, FlaskConical, Footprints, Info } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Suspense, lazy, useMemo, useState, type FormEvent } from 'react';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -16,6 +16,19 @@ import { routesApi } from '@/services/routesApi';
 const RouteMap = lazy(() => import('@/features/routing/RouteMap').then((m) => ({ default: m.RouteMap })));
 
 const RANKING_LABELS: Record<Ranking, string> = { score: 'Highest score', fastest: 'Fastest', balanced: 'Balanced' };
+
+/** Demo servers offer one ready-made walk (the same one the demo accounts use), so a first-time visitor sees results in one tap. */
+const EXAMPLE_ROUTE = {
+  origin: { lat: 28.555, lng: 77.203, label: 'Green Park Market, New Delhi' },
+  destination: { lat: 28.5285, lng: 77.219, label: 'Select Citywalk, Saket' },
+} as const;
+
+/** 10 pm tonight, or now if that has passed: the example is about travelling at night. */
+function tonightAtTen(): Date {
+  const d = new Date();
+  const ten = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 22, 0);
+  return d > ten ? d : ten;
+}
 
 function toLocalInput(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -48,6 +61,13 @@ export function PlanPage() {
     },
   });
 
+  const fillExample = () => {
+    setOrigin({ ...EXAMPLE_ROUTE.origin });
+    setDestination({ ...EXAMPLE_ROUTE.destination });
+    setMode('walk');
+    setDeparture(toLocalInput(tonightAtTen()));
+  };
+
   const submit = (e: FormEvent) => {
     e.preventDefault();
     if (origin && destination) plan.mutate();
@@ -56,6 +76,20 @@ export function PlanPage() {
   return (
     <div className="space-y-5">
       <PageHeader title="Plan a journey" description="Compare routes by how active they are likely to be when you travel." />
+
+      {config.data?.demoMode && !origin && !destination ? (
+        <button
+          type="button"
+          onClick={fillExample}
+          className="flex w-full items-center gap-3 rounded-2xl border border-warning/40 bg-warning-soft/60 p-3.5 text-left text-sm hover:bg-warning-soft"
+        >
+          <FlaskConical className="h-5 w-5 shrink-0 text-warning-strong" aria-hidden />
+          <span className="min-w-0 flex-1">
+            <span className="block font-semibold">Try an example walk</span>
+            <span className="block text-fg-muted">Green Park Market → Select Citywalk, Saket, tonight at 10 pm. Then tap Compare routes.</span>
+          </span>
+        </button>
+      ) : null}
 
       <form onSubmit={submit} className="space-y-3.5 rounded-2xl border border-border/70 bg-surface p-4 shadow-card">
         <LocationInput label="From" value={origin} onChange={setOrigin} allowCurrentLocation />
