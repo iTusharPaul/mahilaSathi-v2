@@ -8,7 +8,7 @@ import { Badge, Button, ErrorState, Notice, Skeleton, cn } from '@/components/ui
 import { LocationInput, type PickedPoint } from '@/features/routing/LocationInput';
 import { RouteCard } from '@/features/routing/RouteCard';
 import { usePublicConfig } from '@/hooks/useSystem';
-import { ApiRequestError } from '@/services/apiClient';
+import { ApiRequestError, isConnectionError } from '@/services/apiClient';
 import { journeysApi } from '@/services/journeysApi';
 import { routesApi } from '@/services/routesApi';
 
@@ -55,6 +55,9 @@ export function PlanPage() {
         mode,
         preferences: { fewerIsolatedStretches, preferMainRoads },
       }),
+    // Planning only creates a private plan, so repeating it after a dropped connection is harmless.
+    retry: (failureCount, error) => failureCount < 1 && isConnectionError(error),
+    retryDelay: 1000,
     onSuccess: (p) => {
       setSelectedId(p.rankings.score[0] ?? null);
       setRanking('score');

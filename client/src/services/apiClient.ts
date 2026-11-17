@@ -28,6 +28,11 @@ interface RequestOptions<S extends z.ZodTypeAny> {
   headers?: Record<string, string>;
 }
 
+/** True for failures where nothing reached the app: safe to repeat a request that has no side effects twice over. */
+export function isConnectionError(error: unknown): boolean {
+  return error instanceof ApiRequestError && error.code === 'NETWORK';
+}
+
 export async function apiRequest<S extends z.ZodTypeAny = z.ZodUnknown>(
   path: string,
   options: RequestOptions<S> = {},
@@ -54,7 +59,22 @@ export async function apiRequest<S extends z.ZodTypeAny = z.ZodUnknown>(
     clearTimeout(timeout);
   }
 
-  const payload: unknown = res.status === 204 ? null : await res.json().catch(() => null);
+  let payload: unknown = null;
+  if (res.status !== 204) {
+    let text: string;
+    try {
+      text = await res.text();
+    } catch {
+      // The connection dropped while the body was downloading (mobile data, proxies). Report it as a network
+      // error, not a malformed response, so callers that retry network errors can recover.
+      throw new ApiRequestError(0, 'NETWORK', 'The connection dropped before the response arrived. Please try again.');
+    }
+    try {
+      payload = text ? JSON.parse(text) : null;
+    } catch {
+      payload = null;
+    }
+  }
 
   if (!res.ok && !options.acceptStatuses?.includes(res.status)) {
     const parsed = apiErrorSchema.safeParse(payload);

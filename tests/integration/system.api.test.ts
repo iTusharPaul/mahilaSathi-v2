@@ -185,3 +185,19 @@ describe('client IP header (CLIENT_IP_HEADER)', () => {
     expect(() => loadConfig({ CLIENT_IP_HEADER: 'x forwarded' })).toThrow(/CLIENT_IP_HEADER/);
   });
 });
+
+describe('per-IP limits on a demo server', () => {
+  const limitOf = (res: request.Response) => Number(/limit=(\d+)/.exec(res.headers['ratelimit'] ?? '')?.[1]);
+
+  it('allows a shared network (venue Wi-Fi) ten times the usual traffic, only in demo mode', async () => {
+    const normal = createTestApp({ env: { NODE_ENV: 'development' } }).app;
+    const demo = createTestApp({ env: { NODE_ENV: 'development', DEMO_MODE: 'true' } }).app;
+    expect(limitOf(await request(normal).get('/api/auth/me'))).toBe(300);
+    expect(limitOf(await request(demo).get('/api/auth/me'))).toBe(3000);
+    // Sign-in has its own, stricter limit: 30 per 15 minutes normally, 300 on a demo server.
+    const send = (app: typeof normal) => request(app).post('/api/auth/send-otp').send({ phone: '9000000042' });
+    const signInLimit = (res: request.Response) => Number([...String(res.headers['ratelimit']).matchAll(/limit=(\d+)/g)].at(-1)?.[1]);
+    expect(signInLimit(await send(normal))).toBe(30);
+    expect(signInLimit(await send(demo))).toBe(300);
+  });
+});

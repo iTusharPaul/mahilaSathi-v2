@@ -35,6 +35,11 @@ Source: [Render free instances](https://render.com/docs/free).
   `CLIENT_IP_HEADER=cf-connecting-ip`, so each visitor gets their own limit. Counting proxy hops
   (`TRUST_PROXY`) gave proxy addresses on Render, so visitors shared limits. If your Blueprint doesn't sync
   this automatically, add it under Environment in the Render dashboard.
+- **Shared networks.** Judges and testers often share one public IP (venue Wi-Fi). In demo mode every per-IP
+  limit is 10 times higher, e.g. 300 sign-in requests per 15 minutes instead of 30. Map tiles stay at the normal
+  limit because they use the Geoapify quota.
+- **Dropped connections.** If a connection drops while a response is downloading, the app treats it as a
+  network error: pages reload their data automatically and route planning retries once.
 - **Secrets stay server-side.** Render generates `JWT_SECRET` and `ADMIN_TOKEN`. Provider keys are entered in
   the Render dashboard and never committed.
 

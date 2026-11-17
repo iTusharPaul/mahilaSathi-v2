@@ -106,11 +106,17 @@ export interface AppServices {
   demo: ReturnType<typeof createDemoSeeder>;
 }
 
+/** Demo mode: per-IP limits are multiplied by this, because judges and testers share networks. */
+export const DEMO_NETWORK_FACTOR = 10;
+
 export function createApp(deps: AppDeps): Express & { services: AppServices } {
   const { config, db, logger } = deps;
   const app = express() as Express & { services: AppServices };
   const clock = deps.clock ?? systemClock;
   const isTest = config.env === 'test';
+  // Per-IP limits. A public demo is judged from shared networks (venue Wi-Fi puts a whole room behind one
+  // address), so demo mode allows each network DEMO_NETWORK_FACTOR times the usual traffic. No real SMS is sent in demo mode.
+  const perIp = (n: number) => (isTest ? 10_000 : config.demoMode ? n * DEMO_NETWORK_FACTOR : n);
 
   const audit = createAuditRepository(db);
   const users = createUserRepository(db);
@@ -277,21 +283,21 @@ export function createApp(deps: AppDeps): Express & { services: AppServices } {
   api.use(systemRouter(system));
   // Nexconn calls the webhook for every message from a handful of IPs: signature-authenticated, not IP-limited.
   api.use(webhooksRouter({ appSecret: nexconnConfigured ? appSecret : null, handler: webhookHandler, clock }));
-  api.use(createRateLimiter({ windowMs: 60_000, limit: isTest ? 10_000 : 300 }));
+  api.use(createRateLimiter({ windowMs: 60_000, limit: perIp(300) }));
   api.use(requireTrustedOrigin(config.corsOrigins));
   api.use(attachSession(auth));
-  api.use(authRouter({ auth, userService, secureCookies: config.isProduction, ipLimit: isTest ? 10_000 : 30 }));
+  api.use(authRouter({ auth, userService, secureCookies: config.isProduction, ipLimit: perIp(30) }));
   api.use(usersRouter({ userService, secureCookies: config.isProduction }));
-  api.use(geoRouter({ registry, geo, coverage, searchLimit: isTest ? 10_000 : 60 }));
-  api.use(communityRouter({ community, sessionLimit: isTest ? 10_000 : 30 }));
-  api.use(circlesRouter({ circles: circleService, acceptLimit: isTest ? 10_000 : 10 }));
-  api.use(routingRouter({ planning, geoapifyKey: deps.routingProviders ? null : geoKey, planLimit: isTest ? 10_000 : 30, tileLimit: isTest ? 10_000 : 3000 }));
-  api.use(journeysRouter({ trips, walk, locationLimit: isTest ? 10_000 : 12 }));
-  api.use(pulseRouter({ pulse, adminToken: config.adminToken, reportLimit: isTest ? 10_000 : 10 }));
-  api.use(sosRouter({ sos, locationLimit: isTest ? 10_000 : 12, adminToken: config.adminToken }));
-  api.use(pushRouter({ push, testLimit: isTest ? 10_000 : 5 }));
-  api.use(privacyRouter({ privacy, audit, adminToken: config.adminToken, exportLimit: isTest ? 10_000 : 5 }));
-  api.use(safetyRouter({ safety: safetyService, adminToken: config.adminToken, reportLimit: isTest ? 10_000 : 20 }));
+  api.use(geoRouter({ registry, geo, coverage, searchLimit: perIp(60) }));
+  api.use(communityRouter({ community, sessionLimit: perIp(30) }));
+  api.use(circlesRouter({ circles: circleService, acceptLimit: perIp(10) }));
+  api.use(routingRouter({ planning, geoapifyKey: deps.routingProviders ? null : geoKey, planLimit: perIp(30), tileLimit: isTest ? 10_000 : 3000 /* tiles spend the Geoapify quota: not scaled */ }));
+  api.use(journeysRouter({ trips, walk, locationLimit: perIp(12) }));
+  api.use(pulseRouter({ pulse, adminToken: config.adminToken, reportLimit: perIp(10) }));
+  api.use(sosRouter({ sos, locationLimit: perIp(12), adminToken: config.adminToken }));
+  api.use(pushRouter({ push, testLimit: perIp(5) }));
+  api.use(privacyRouter({ privacy, audit, adminToken: config.adminToken, exportLimit: perIp(5) }));
+  api.use(safetyRouter({ safety: safetyService, adminToken: config.adminToken, reportLimit: perIp(20) }));
   api.use(apiNotFound);
 
   app.use(API_PREFIX, api);
