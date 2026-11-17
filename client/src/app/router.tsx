@@ -17,6 +17,8 @@ import { SosPage } from '@/pages/sos/SosPage';
 const page = <M,>(load: () => Promise<M>, pick: (m: M) => React.ComponentType) => async () => ({ Component: pick(await load()) });
 
 export const router = createBrowserRouter([
+  // Readable signed in or out, so people can check it before they sign up.
+  { path: 'privacy', errorElement: <RouteError />, lazy: page(() => import('@/pages/PrivacyPage'), (m) => m.PrivacyPage) },
   {
     element: <RedirectIfSignedIn />,
     errorElement: <RouteError />,

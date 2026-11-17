@@ -22,7 +22,10 @@ import { authRouter } from './routes/auth.js';
 import { geoRouter } from './routes/geo.js';
 import { systemRouter } from './routes/system.js';
 import { usersRouter } from './routes/users.js';
+import { usageRouter } from './routes/usage.js';
+import { createUsageRepository } from './repositories/usageRepository.js';
 import { createAuthService } from './services/auth/authService.js';
+import { createGoogleTokenVerifier, type GoogleTokenVerifier } from './services/auth/googleIdToken.js';
 import { createOtpProvider, type OtpProvider } from './services/auth/otpProvider.js';
 import { GeoRegistry } from './services/geography/geoRegistry.js';
 import { createGeoService } from './services/geography/geoService.js';
@@ -87,6 +90,8 @@ export interface AppDeps {
   smsProvider?: SmsProvider;
   /** Replaces the Web Push sender (tests). */
   pushSender?: PushSender;
+  /** Replaces the Google ID token check (tests). Only used when GOOGLE_CLIENT_ID is configured. */
+  googleVerifier?: GoogleTokenVerifier;
 }
 
 export interface AppServices {
@@ -106,6 +111,8 @@ export interface AppServices {
   demo: ReturnType<typeof createDemoSeeder>;
 }
 
+const GOOGLE_GSI_ORIGIN = 'https://accounts.google.com';
+
 /** Demo mode: per-IP limits are multiplied by this, because judges and testers share networks. */
 export const DEMO_NETWORK_FACTOR = 10;
 
@@ -121,14 +128,21 @@ export function createApp(deps: AppDeps): Express & { services: AppServices } {
   const audit = createAuditRepository(db);
   const users = createUserRepository(db);
   const registry = new GeoRegistry(db);
+  const otpProvider = deps.otpProvider ?? createOtpProvider(config);
+  const demoPhones = new Set(DEMO_ACCOUNTS.map((a) => normalizeIndianMobile(a.phone)!));
+  const googleClientId = config.google.clientId;
   const auth = createAuthService({
     authRepo: createAuthRepository(db),
     users,
     audit,
-    otpProvider: deps.otpProvider ?? createOtpProvider(config),
+    otpProvider,
     secret: config.jwtSecret,
     clock,
-    sharedDemoPhones: config.demoMode ? new Set(DEMO_ACCOUNTS.map((a) => normalizeIndianMobile(a.phone)!)) : undefined,
+    sharedDemoPhones: config.demoMode ? demoPhones : undefined,
+    googleVerifier: googleClientId ? (deps.googleVerifier ?? createGoogleTokenVerifier(googleClientId)) : null,
+    // With Google sign-in on, on-screen phone codes (which let anyone use any number) are kept for the
+    // fictional demo accounts only, so every other account is a real person who signed in with Google.
+    phoneSignInOnlyFor: googleClientId && otpProvider.mode === 'dev-adapter' ? demoPhones : undefined,
   });
   const userService = createUserService({ users, contacts: createEmergencyContactRepository(db), audit, registry, clock });
   const geocoder =
@@ -250,9 +264,23 @@ export function createApp(deps: AppDeps): Express & { services: AppServices } {
           'img-src': ["'self'", 'data:', 'blob:'],
           'worker-src': ["'self'", 'blob:'],
           // The Nexconn Web SDK discovers and connects to its edge servers from the browser.
-          'connect-src': ["'self'", ...(nexconnConfigured ? NEXCONN_BROWSER_HOSTS[config.nexconn.area] : [])],
+          'connect-src': [
+            "'self'",
+            ...(nexconnConfigured ? NEXCONN_BROWSER_HOSTS[config.nexconn.area] : []),
+            ...(googleClientId ? [GOOGLE_GSI_ORIGIN + '/gsi/'] : []),
+          ],
+          // Sign in with Google loads its script, button frame and styles from accounts.google.com.
+          ...(googleClientId
+            ? {
+                'script-src': ["'self'", GOOGLE_GSI_ORIGIN + '/gsi/client'],
+                'frame-src': ["'self'", GOOGLE_GSI_ORIGIN + '/gsi/'],
+                'style-src': ["'self'", 'https:', "'unsafe-inline'", GOOGLE_GSI_ORIGIN + '/gsi/style'],
+              }
+            : {}),
         },
       },
+      // Google's sign-in popup must be able to report back to this window.
+      crossOriginOpenerPolicy: { policy: googleClientId ? 'same-origin-allow-popups' : 'same-origin' },
       crossOriginEmbedderPolicy: false,
       referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
     }),
@@ -297,6 +325,7 @@ export function createApp(deps: AppDeps): Express & { services: AppServices } {
   api.use(sosRouter({ sos, locationLimit: perIp(12), adminToken: config.adminToken }));
   api.use(pushRouter({ push, testLimit: perIp(5) }));
   api.use(privacyRouter({ privacy, audit, adminToken: config.adminToken, exportLimit: perIp(5) }));
+  api.use(usageRouter({ usage: createUsageRepository(db), adminToken: config.adminToken, clock }));
   api.use(safetyRouter({ safety: safetyService, adminToken: config.adminToken, reportLimit: perIp(20) }));
   api.use(apiNotFound);
 

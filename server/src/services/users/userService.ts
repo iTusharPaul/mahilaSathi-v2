@@ -1,5 +1,6 @@
 import {
   MAX_EMERGENCY_CONTACTS,
+  maskEmail,
   maskPhone,
   type EmergencyContact,
   type Me,
@@ -44,6 +45,8 @@ export function createUserService(deps: {
     return {
       id: u.id,
       maskedPhone: u.phone_e164 ? maskPhone(u.phone_e164) : '',
+      signInMethod: u.google_sub ? 'google' : 'phone',
+      maskedEmail: u.email ? maskEmail(u.email) : null,
       displayName: u.display_name,
       communityHandle: u.community_handle,
       homeArea,

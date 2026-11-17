@@ -43,7 +43,7 @@ export function createTestApp(
     migrationsDir?: string;
     /** Reuse an existing database (e.g. to simulate a server restart). Skips migration and seeding. */
     db?: Db;
-  } & Partial<Pick<AppDeps, 'clock' | 'otpProvider' | 'geocoder' | 'nexconnApi' | 'routingProviders' | 'smsProvider' | 'pushSender'>> = {},
+  } & Partial<Pick<AppDeps, 'clock' | 'otpProvider' | 'geocoder' | 'nexconnApi' | 'routingProviders' | 'smsProvider' | 'pushSender' | 'googleVerifier'>> = {},
 ): TestContext {
   const config = loadConfig({ NODE_ENV: 'test', DATABASE_PATH: ':memory:', ...options.env });
   const db = options.db ?? openDatabase(config.databasePath);
@@ -65,6 +65,7 @@ export function createTestApp(
     ...(options.routingProviders ? { routingProviders: options.routingProviders } : {}),
     ...(options.smsProvider ? { smsProvider: options.smsProvider } : {}),
     ...(options.pushSender ? { pushSender: options.pushSender } : {}),
+    ...(options.googleVerifier ? { googleVerifier: options.googleVerifier } : {}),
   });
   return { app, db, config };
 }

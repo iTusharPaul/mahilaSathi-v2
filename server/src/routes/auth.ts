@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { sendOtpRequestSchema, verifyOtpRequestSchema, type AuthResult } from '@mahilasathi/shared';
+import { googleSignInRequestSchema, sendOtpRequestSchema, verifyOtpRequestSchema, type AuthResult } from '@mahilasathi/shared';
 import { SESSION_COOKIE, clearSessionCookie, currentAuth, requireAuth, sessionCookieOptions } from '../middleware/auth.js';
 import { createRateLimiter } from '../middleware/rateLimit.js';
 import { parseBody } from '../middleware/validate.js';
@@ -18,6 +18,14 @@ export function authRouter(deps: { auth: AuthService; userService: UserService; 
   router.post('/auth/send-otp', authLimiter, async (req, res) => {
     const { phone } = parseBody(req, sendOtpRequestSchema);
     res.status(201).json(await auth.sendOtp(phone, { requestId: req.id }));
+  });
+
+  router.post('/auth/google', authLimiter, async (req, res) => {
+    const { credential } = parseBody(req, googleSignInRequestSchema);
+    const result = await auth.signInWithGoogle(credential, { userAgent: req.header('user-agent'), requestId: req.id });
+    res.cookie(SESSION_COOKIE, result.token, sessionCookieOptions(secureCookies, result.expiresAt));
+    const body: AuthResult = { user: userService.toMe(result.user), isNewUser: result.isNewUser };
+    res.json(body);
   });
 
   router.post('/auth/verify-otp', authLimiter, (req, res) => {

@@ -53,3 +53,6 @@ services:
         sync: false
       - key: NEXCONN_APP_SECRET
         sync: false
+      # Sign in with Google (docs/google-sign-in.md). Leave blank to keep phone sign-in only.
+      - key: GOOGLE_CLIENT_ID
+        sync: false

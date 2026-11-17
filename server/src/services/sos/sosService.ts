@@ -59,7 +59,10 @@ export function createSosService(deps: {
   logger: Logger;
   /** Optional push notifications to guardians (best effort; never part of delivery status). */
   push?: PushService;
-  /** Public demo server: label every SOS as a demo, whoever raises it, so nobody mistakes a test for a real emergency. */
+  /**
+   * Public demo server: label every SOS from a phone-code account as a demo (anyone can sign in with any number
+   * there), so nobody mistakes a test for a real emergency. Google accounts are real people: never labelled.
+   */
   demoMode?: boolean;
 }) {
   const { repo, trips, circles, contacts, users, community, sms, registry, audit, clock, logger } = deps;
@@ -386,7 +389,7 @@ export function createSosService(deps: {
         activated_at: created,
         ended_at: null,
         updated_at: created,
-        is_demo: user.is_demo === 1 || deps.demoMode ? 1 : 0,
+        is_demo: user.is_demo === 1 || (deps.demoMode && !user.google_sub) ? 1 : 0,
       };
       const deliveries = [
         // In-app: available at once; "delivered" only when the guardian's app loads it.

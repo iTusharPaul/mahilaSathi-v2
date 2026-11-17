@@ -51,6 +51,12 @@ export const publicConfigSchema = z.object({
   environment: z.enum(['development', 'test', 'production']),
   demoMode: z.boolean(),
   communityModerationEnabled: z.boolean(),
+  auth: z.object({
+    /** Public OAuth client id for Sign in with Google, or null when it is not set up. */
+    googleClientId: z.string().nullable(),
+    /** 'demo_accounts_only': phone codes are shown on screen, so only the fictional demo accounts may use them. */
+    phoneSignIn: z.enum(['open', 'demo_accounts_only']),
+  }),
   providers: z.object({
     geoapify: providerStatusSchema,
     nexconn: providerStatusSchema,

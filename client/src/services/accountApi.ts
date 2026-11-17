@@ -15,6 +15,7 @@ export const authApi = {
   sendOtp: (phone: string) => apiRequest('/auth/send-otp', { method: 'POST', body: { phone }, schema: sendOtpResponseSchema }),
   verifyOtp: (otpSessionId: string, code: string) =>
     apiRequest('/auth/verify-otp', { method: 'POST', body: { otpSessionId, code }, schema: authResultSchema }),
+  google: (credential: string) => apiRequest('/auth/google', { method: 'POST', body: { credential }, schema: authResultSchema }),
   logout: () => apiRequest('/auth/logout', { method: 'POST' }),
   me: () => apiRequest('/auth/me', { schema: meSchema }),
 };

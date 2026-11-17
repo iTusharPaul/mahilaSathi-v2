@@ -10,6 +10,10 @@ const areaRef = z.object({ id: z.string(), name: z.string() });
 export const meSchema = z.object({
   id: z.string(),
   maskedPhone: z.string(),
+  /** How this account signs in. Google accounts have no phone number. */
+  signInMethod: z.enum(['phone', 'google']),
+  /** The Google account's email, masked (Google accounts only). */
+  maskedEmail: z.string().nullable(),
   displayName: z.string().nullable(),
   communityHandle: z.string(),
   homeArea: z

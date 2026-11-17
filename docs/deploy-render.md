@@ -83,6 +83,13 @@ restarts and deploys.
 - **Nexconn** has free-tier limits on users and messages. A fresh database creates new chat users after each
   restart.
 
+## Real sign-ups with Google
+
+To let real people sign in (for example, to show traction), add `GOOGLE_CLIENT_ID` under **Environment**.
+[google-sign-in.md](google-sign-in.md) has the steps. Then phone sign-in is limited to the demo accounts, and
+Google users are treated as real people: their SOS alerts aren't labelled demo, but emergency SMS is still
+simulated. Read the next section first: on the free plan, their accounts disappear on every restart.
+
 ## Need data that survives restarts?
 
 The free plan can't keep a disk. Options, in order of effort:

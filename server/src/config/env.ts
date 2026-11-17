@@ -62,6 +62,10 @@ const rawEnvSchema = z.object({
   VAPID_SUBJECT: optionalString,
   SMS_PROVIDER: optionalString,
   DEMO_MODE: booleanFlag(false),
+  GOOGLE_CLIENT_ID: z.preprocess(
+    (v) => (isBlank(v) ? undefined : String(v).trim()),
+    z.string().regex(/^[\w-]+\.apps\.googleusercontent\.com$/, 'must be an OAuth client id ending in .apps.googleusercontent.com').optional(),
+  ),
   DEMO_AUTOSEED: booleanFlag(false),
   CLIENT_IP_HEADER: z.preprocess(
     (v) => (isBlank(v) ? undefined : String(v).trim().toLowerCase()),
@@ -85,6 +89,8 @@ export interface AppConfig {
   jwtSecretIsEphemeral: boolean;
   adminToken: string | null;
   demoMode: boolean;
+  /** Sign in with Google: the OAuth web client id (public; it is sent to browsers). */
+  google: { clientId: string | null };
   /** Seed the demo accounts at startup (demo hosts whose disk resets). Only true when demoMode is. */
   demoAutoSeed: boolean;
   /** Reverse-proxy hops to trust in production (for the client IP used by rate limits). */
@@ -212,6 +218,7 @@ export function loadConfig(env: Record<string, string | undefined>): AppConfig {
     jwtSecretIsEphemeral: e.JWT_SECRET === undefined,
     adminToken: e.ADMIN_TOKEN ?? null,
     demoMode: e.DEMO_MODE,
+    google: { clientId: e.GOOGLE_CLIENT_ID ?? null },
     demoAutoSeed: e.DEMO_MODE && e.DEMO_AUTOSEED,
     trustProxy: e.TRUST_PROXY,
     clientIpHeader: e.CLIENT_IP_HEADER ?? null,

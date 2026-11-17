@@ -53,11 +53,14 @@ in the same change as the migration that creates it.
 | `sos_acknowledgements` | 0007 | PERSONAL | A guardian's response (seen / calling / on the way) and time | Owner and the other alerted guardians | Deleted with the SOS |
 | `dev_sms_outbox` | 0007 | RESTRICTED | **Development SMS adapter only**: the text that would have been sent and the number. Nothing leaves the server | Server only | Purged after 7 days |
 | `users.is_demo`, `sos_events.is_demo`, `community_reports.is_demo` | 0008 | INTERNAL | Marks fictional demo accounts and what they create, so the product labels them and never counts them as community data | Server; shown as a "demo" label | Lives with the row |
+| `users.google_sub`, `users.email` | 0010 | RESTRICTED | Google's opaque account id, and the email only when Google reports it verified. A user now has a phone number **or** a Google account | Server; the owner sees the email masked (`p•••@gmail.com`) and in the data export. Never shown to other members or moderators | Cleared on account deletion, like the phone number |
 | `push_subscriptions` | 0009 | PERSONAL | One row per device that turned notifications on: the push-service endpoint (a capability URL at Google/Mozilla/Microsoft/Apple) and the keys used to encrypt payloads | Server only | Deleted on unsubscribe, when the push service reports it gone (404/410), and with the account |
 
 ## Rules that apply to every table
 
 - Exact coordinates live only in RESTRICTED tables (`route_plans`, `route_cache`, `trips`, `trip_routes`, `trip_locations`, `sos_events`, and SMS text in `dev_sms_outbox`). Shared and community tables hold H3 cells, ~100 m-rounded points or area names only. The home area is stored as an area id, never as coordinates. Coordinates sent to `/api/geo/resolve` are used for that request only and are not stored.
 - Phone numbers are stored only in authentication and emergency-contact tables. They are never returned in community APIs.
+- Email addresses (Google sign-in) are stored only in `users.email` and are never returned in community or moderation APIs. The moderator usage report contains counts only.
+- The user-facing privacy notice (`/privacy`, `client/src/pages/PrivacyPage.tsx`) summarises this document and must be changed with it.
 - Request logs record method and path only. Query strings, bodies, cookies, phone numbers, OTP codes, tokens and coordinates are not logged or are redacted.
 - Each table holding PERSONAL or RESTRICTED data documents its retention period here when it is created.

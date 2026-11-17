@@ -140,4 +140,23 @@ describe('project migrations', () => {
     expect(audit.listForTarget('thing', 't1')).toMatchObject([{ id, action: 'test.event', metadata_json: '{"n":1}' }]);
     expect(() => db.prepare("UPDATE audit_events SET action = 'tampered' WHERE id = ?").run(id)).toThrow(/append-only/);
   });
+
+  it('0010 keeps existing phone accounts and their data, and allows Google-only accounts', () => {
+    const before = makeTempDir('ms-migrations-');
+    for (const f of fs.readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith('.sql') && f < '0010')) fs.copyFileSync(path.join(MIGRATIONS_DIR, f), path.join(before, f));
+    const db = openDatabase(':memory:');
+    runMigrations(db, before);
+    db.prepare("INSERT INTO users (id, phone_e164, community_handle, is_demo) VALUES ('u1', '+919811122233', 'Mango-11', 0)").run();
+    db.prepare("INSERT INTO user_preferences (user_id, notify_community) VALUES ('u1', 1)").run();
+
+    expect(runMigrations(db, MIGRATIONS_DIR).map((m) => m.version)).toEqual([10]);
+    expect(db.prepare("SELECT phone_e164, google_sub, email, community_handle FROM users WHERE id = 'u1'").get()).toEqual({ phone_e164: '+919811122233', google_sub: null, email: null, community_handle: 'Mango-11' });
+    // ON DELETE CASCADE did not fire during the rebuild.
+    expect(db.prepare("SELECT notify_community FROM user_preferences WHERE user_id = 'u1'").get()).toEqual({ notify_community: 1 });
+    expect(db.pragma('foreign_keys', { simple: true })).toBe(1);
+
+    db.prepare("INSERT INTO users (id, google_sub, email, community_handle) VALUES ('u2', 'g-1', 'a@gmail.com', 'Neem-99')").run();
+    expect(() => db.prepare("INSERT INTO users (id, community_handle) VALUES ('u3', 'Tulsi-12')").run()).toThrow(/CHECK/);
+    expect(() => db.prepare("INSERT INTO users (id, google_sub, community_handle) VALUES ('u4', 'g-1', 'Tulsi-13')").run()).toThrow(/UNIQUE/);
+  });
 });

@@ -1,4 +1,4 @@
-import { auditEventSchema, communityReviewItemSchema, devSmsSchema, moderationQueueSchema } from '@mahilasathi/shared';
+import { auditEventSchema, communityReviewItemSchema, devSmsSchema, moderationQueueSchema, usageReportSchema } from '@mahilasathi/shared';
 import { z } from 'zod';
 import { apiRequest } from './apiClient';
 
@@ -14,6 +14,7 @@ export function moderationApi(token: string) {
     communityReports: () => apiRequest('/moderation/community-reports', { headers, schema: z.object({ reports: z.array(communityReviewItemSchema) }) }),
     review: (id: string, decision: 'verify' | 'reject', note: string) =>
       apiRequest(`/moderation/community-reports/${enc(id)}/review`, { method: 'POST', headers, body: { decision, note }, schema: z.object({ status: z.string() }) }),
+    usage: () => apiRequest('/moderation/usage', { headers, schema: usageReportSchema }),
     devSms: () => apiRequest('/moderation/dev-sms', { headers, schema: z.object({ messages: z.array(devSmsSchema) }) }),
     audit: (q: { action?: string; before?: string; limit?: number }) => {
       const params = new URLSearchParams();

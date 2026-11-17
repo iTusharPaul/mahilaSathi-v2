@@ -68,7 +68,7 @@ export function createTripService(deps: {
   clock: Clock;
   logger: Logger;
   push?: PushService;
-  /** Public demo server: prefix every journey update with [Demo]. */
+  /** Public demo server: prefix journey updates from phone-code accounts with [Demo] (not Google accounts). */
   demoMode?: boolean;
 }) {
   const { trips, circles, users, planning, pulse, community, registry, audit, clock, logger } = deps;
@@ -131,7 +131,8 @@ export function createTripService(deps: {
 
   /** Posts MS:JourneyStatus into every Guardian Circle the journey is actively shared with. */
   async function notifyCircles(t: TripRow, rawText: string): Promise<void> {
-    const text = deps.demoMode || users.findById(t.user_id)?.is_demo === 1 ? `[Demo] ${rawText}` : rawText;
+    const owner = users.findById(t.user_id);
+    const text = owner?.is_demo === 1 || (deps.demoMode && !owner?.google_sub) ? `[Demo] ${rawText}` : rawText;
     for (const s of trips.sharesForTrip(t.id).filter((x) => x.revoked_at === null)) {
       const circle = circles.byId(s.circle_id);
       if (!circle) continue;

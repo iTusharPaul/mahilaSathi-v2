@@ -26,7 +26,7 @@ export function ProfilePage() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Profile" description={`Signed in as ${me.data.maskedPhone}`} action={me.data.isDemo ? <Badge tone="warning">Demo account</Badge> : undefined} />
+      <PageHeader title="Profile" description={`Signed in as ${me.data.signInMethod === 'google' ? `${me.data.maskedEmail ?? 'your Google account'} (Google)` : me.data.maskedPhone}`} action={me.data.isDemo ? <Badge tone="warning">Demo account</Badge> : undefined} />
       <DisplayNameCard />
       <HomeAreaCard />
       <Card>

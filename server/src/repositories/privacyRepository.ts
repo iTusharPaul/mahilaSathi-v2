@@ -41,7 +41,7 @@ export function createPrivacyRepository(db: Db) {
       }));
       return {
         account: one(
-          'SELECT id, phone_e164 AS phone, display_name, community_handle, home_district_id, home_neighbourhood_id, created_at FROM users WHERE id = ?',
+          "SELECT id, phone_e164 AS phone, email, CASE WHEN google_sub IS NULL THEN 'phone' ELSE 'google' END AS sign_in_method, display_name, community_handle, home_district_id, home_neighbourhood_id, created_at FROM users WHERE id = ?",
           userId,
         ),
         preferences: one('SELECT * FROM user_preferences WHERE user_id = ?', userId) ?? null,

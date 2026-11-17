@@ -5,6 +5,10 @@ import type { Db } from '../db/connection.js';
 export interface UserRow {
   id: string;
   phone_e164: string | null;
+  /** Google's stable account id, for accounts that sign in with Google. Never shown to anyone. */
+  google_sub: string | null;
+  /** The Google account's email. Shown only to the owner, masked. */
+  email: string | null;
   display_name: string | null;
   community_handle: string;
   home_district_id: string | null;
@@ -34,11 +38,13 @@ const toPreferences = (r: PreferencesRow): Preferences => ({
 export function createUserRepository(db: Db) {
   const byId = db.prepare("SELECT * FROM users WHERE id = ? AND status = 'active'");
   const byPhone = db.prepare("SELECT * FROM users WHERE phone_e164 = ? AND status = 'active'");
+  const byGoogleSub = db.prepare("SELECT * FROM users WHERE google_sub = ? AND status = 'active'");
   const handleTaken = db.prepare('SELECT 1 FROM users WHERE community_handle = ?');
 
   return {
     findById: (id: string) => byId.get(id) as UserRow | undefined,
     findByPhone: (phone: string) => byPhone.get(phone) as UserRow | undefined,
+    findByGoogleSub: (sub: string) => byGoogleSub.get(sub) as UserRow | undefined,
     isHandleTaken: (handle: string) => handleTaken.get(handle) !== undefined,
 
     /** Flags a fictional demo account (demo seeding only). */
@@ -52,6 +58,20 @@ export function createUserRepository(db: Db) {
       db.prepare('INSERT INTO user_preferences (user_id, updated_at) VALUES (?, ?)').run(id, now);
       return byId.get(id) as UserRow;
     },
+
+    /** A new account identified by a Google account instead of a phone number. */
+    createWithGoogle(googleSub: string, email: string | null, handle: string, now: string): UserRow {
+      const id = crypto.randomUUID();
+      db.prepare(
+        `INSERT INTO users (id, google_sub, email, community_handle, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)`,
+      ).run(id, googleSub, email, handle, now, now);
+      db.prepare('INSERT INTO user_preferences (user_id, updated_at) VALUES (?, ?)').run(id, now);
+      return byId.get(id) as UserRow;
+    },
+
+    /** Keeps the stored email in step with the Google account (people change addresses). */
+    setEmail: (id: string, email: string | null, now: string) =>
+      void db.prepare('UPDATE users SET email = ?, updated_at = ? WHERE id = ?').run(email, now, id),
 
     update(
       id: string,
@@ -97,7 +117,7 @@ export function createUserRepository(db: Db) {
         db.prepare('DELETE FROM push_subscriptions WHERE user_id = ?').run(id);
         db.prepare("UPDATE sos_recipients SET name = 'Former member' WHERE user_id = ?").run(id);
         db.prepare(
-          `UPDATE users SET status = 'deleted', phone_e164 = NULL, display_name = NULL, home_district_id = NULL,
+          `UPDATE users SET status = 'deleted', phone_e164 = NULL, google_sub = NULL, email = NULL, display_name = NULL, home_district_id = NULL,
              home_neighbourhood_id = NULL, deleted_at = @now, updated_at = @now WHERE id = @id`,
         ).run({ id, now });
       })();

@@ -345,6 +345,7 @@ All variables are read by the **server** only. See [.env.example](.env.example) 
 | `DATABASE_PATH` | no | Default `./data/mahilasathi.db`; `:memory:` for throwaway runs |
 | `JWT_SECRET` | production | ≥ 32 chars. In development an ephemeral secret is generated, with a warning |
 | `ADMIN_TOKEN` | production | ≥ 32 chars |
+| `GOOGLE_CLIENT_ID` | no | Turns on **Continue with Google** (OAuth web client id; public, not a secret). While sign-in codes are the development adapter, phone sign-in is then limited to the demo accounts, and Google users are never labelled demo. See [docs/google-sign-in.md](docs/google-sign-in.md) |
 | `GEOAPIFY_API_KEY` | no | Enables street-level place search, routing, place data and map tiles. Without it, search uses the local NCR gazetteer and routes are labelled synthetic straight lines |
 | `NEXCONN_APP_KEY` / `NEXCONN_APP_SECRET` | no | Set both or neither. The secret never leaves the server. Without them, community chat uses the labelled development relay |
 | `NEXCONN_AREA` | no | `sg` (default) or `na`; selects the documented primary/backup Server API hosts |
@@ -479,6 +480,12 @@ Recorded on 2026-11-13, Node 22.23, Windows 11, with live Geoapify and Nexconn k
 
 ## Provider setup
 
+### Google (sign-in for real people)
+
+Create an OAuth "Web application" client and set `GOOGLE_CLIENT_ID`. Step-by-step instructions are in
+[docs/google-sign-in.md](docs/google-sign-in.md). The ID token is verified on the server against Google's keys,
+issuer and our client id. Only Google's account id and verified email are kept.
+
 ### Geoapify (places, routing, map tiles)
 
 1. Create a project at geoapify.com and copy its API key.
@@ -558,6 +565,7 @@ On startup it applies migrations and loads the NCR dataset.
 | Nexconn channel architecture | [docs/community-architecture.md](docs/community-architecture.md) |
 | Data classification and retention | [docs/data-classification.md](docs/data-classification.md) |
 | Free public demo on Render | [docs/deploy-render.md](docs/deploy-render.md) |
+| Sign in with Google (setup, what is stored, usage numbers) | [docs/google-sign-in.md](docs/google-sign-in.md) |
 
 ## Phase 6 evidence
 
@@ -617,7 +625,7 @@ Verified on 2026-11-16 with `npm run dev` (Vite on 5173, API on 8080), live Geoa
 
 ## Moderator screen
 
-Open `/moderation` (also linked at the bottom of Profile) and enter the server's `ADMIN_TOKEN`. The token is kept only in that tab's memory, never in storage or the URL, so reloading the tab locks the tools again. The screen has three tabs:
+Open `/moderation` (also linked at the bottom of Profile) and enter the server's `ADMIN_TOKEN`. The token is kept only in that tab's memory, never in storage or the URL, so reloading the tab locks the tools again. The screen has these tabs:
 
 - **Reports:**
   - Each message or user report shows the reported person's pseudonym, any active suspension, and how many reports are open against them, plus the reporter's pseudonym, the channel, and the message.
@@ -626,6 +634,8 @@ Open `/moderation` (also linked at the bottom of Profile) and enter the server's
   - Dismissing reports lifts an automatic suspension that those reports caused.
 - **Area reports:** verify or reject community reports, with a note. Reports about people stay hidden until verified.
 - **Audit log:** newest first, filterable by area (moderation, SOS, journeys, privacy and more), with "load older".
+- **Usage:** counts of real people only (the demo accounts are excluded): accounts, sign-ups per day, active and returning people, journeys, Guardian Circles. "Copy as text" gives a summary for a submission.
+- **SMS outbox:** only with the development SMS adapter; what emergency contacts would have received.
 
 The moderation endpoints never send phone numbers or internal user ids to this screen. A test checks this.
 

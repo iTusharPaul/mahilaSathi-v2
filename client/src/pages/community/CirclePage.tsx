@@ -7,6 +7,7 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { Badge, Button, Card, CardHeader, ErrorState, Notice, Skeleton, TextField } from '@/components/ui';
 import { useChat } from '@/features/community/chat/ChatContext';
 import { formatDayTime } from '@/features/community/format';
+import { usePublicConfig } from '@/hooks/useSystem';
 import { communityApi } from '@/services/communityApi';
 
 const circlesKey = ['community', 'circles'] as const;
@@ -85,6 +86,8 @@ function OwnCircle({ circle }: { circle: Circle }) {
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [lastCode, setLastCode] = useState<{ code: string; expiresAt: string; bound: boolean } | null>(null);
   const [copied, setCopied] = useState(false);
+  // People who continue with Google have no phone number on their account, so a number-locked code could never be used.
+  const canBindToPhone = !usePublicConfig().data?.auth.googleClientId;
   const invite = useMutation({
     mutationFn: () => communityApi.invite(circle.id, phone.trim() || undefined),
     onSuccess: (res) => {
@@ -125,7 +128,7 @@ function OwnCircle({ circle }: { circle: Circle }) {
           </div>
         ) : null}
         <form onSubmit={submit} className="space-y-2.5" noValidate>
-          <TextField label="Their mobile number (optional)" hint="If given, only that number’s account can use the code." leading={<span className="text-sm">+91</span>} inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} error={phoneError} />
+          {canBindToPhone ? <TextField label="Their mobile number (optional)" hint="If given, only that number’s account can use the code." leading={<span className="text-sm">+91</span>} inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} error={phoneError} /> : null}
           {invite.isError ? <p role="alert" className="text-sm text-danger">{invite.error.message}</p> : null}
           <Button type="submit" variant="secondary" icon={<UserPlus className="h-4 w-4" aria-hidden />} loading={invite.isPending}>Create invite code</Button>
         </form>

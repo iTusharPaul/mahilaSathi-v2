@@ -43,3 +43,9 @@ export const verifyOtpRequestSchema = z.object({
   code: z.string().trim().regex(new RegExp(`^\\d{${OTP_LENGTH}}$`), `Enter the ${OTP_LENGTH}-digit code`),
 });
 export type VerifyOtpRequest = z.infer<typeof verifyOtpRequestSchema>;
+
+/** The ID token (JWT) Google Identity Services hands the page after the user picks an account. */
+export const googleSignInRequestSchema = z.object({
+  credential: z.string().min(20).max(4096).regex(/^[\w-]+\.[\w-]+\.[\w-]+$/, 'Not a Google sign-in token'),
+});
+export type GoogleSignInRequest = z.infer<typeof googleSignInRequestSchema>;

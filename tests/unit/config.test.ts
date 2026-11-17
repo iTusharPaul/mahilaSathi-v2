@@ -49,6 +49,14 @@ describe('loadConfig', () => {
     expect(problemsOf({ TRUST_PROXY: 'lots' })).toEqual([expect.stringContaining('TRUST_PROXY')]);
   });
 
+  it('accepts only a Google OAuth web client id', () => {
+    expect(loadConfig({}).google.clientId).toBeNull();
+    expect(loadConfig({ GOOGLE_CLIENT_ID: '' }).google.clientId).toBeNull();
+    const id = '123456789012-abcdefghijklmnop.apps.googleusercontent.com';
+    expect(loadConfig({ GOOGLE_CLIENT_ID: id }).google.clientId).toBe(id);
+    expect(problemsOf({ GOOGLE_CLIENT_ID: 'GOCSPX-this-is-a-client-secret' })).toEqual([expect.stringContaining('GOOGLE_CLIENT_ID')]);
+  });
+
   it('requires strong secrets in production and reports every problem at once', () => {
     const problems = problemsOf({ NODE_ENV: 'production', DEMO_MODE: 'true' });
     expect(problems).toHaveLength(2);

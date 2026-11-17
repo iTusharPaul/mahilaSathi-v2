@@ -6,6 +6,7 @@ import type { UserRepository, UserRow } from '../../repositories/userRepository.
 import { AppError } from '../../utils/errors.js';
 import { hmacHex, randomNumericCode, randomToken, safeEqualHex, sha256Hex, type Clock } from '../../utils/crypto.js';
 import { generateCommunityHandle } from '../users/communityHandle.js';
+import { GoogleTokenError, type GoogleTokenVerifier } from './googleIdToken.js';
 import type { OtpProvider } from './otpProvider.js';
 
 export const OTP_POLICY = {
@@ -33,6 +34,13 @@ export interface AuthDeps {
    * limit still applies.
    */
   sharedDemoPhones?: ReadonlySet<string>;
+  /** Sign in with Google, when GOOGLE_CLIENT_ID is configured. */
+  googleVerifier?: GoogleTokenVerifier | null;
+  /**
+   * When set, phone sign-in is limited to these numbers. Used when Google sign-in is on and the OTP provider is
+   * the on-screen development adapter: real people sign in with Google, phone codes stay for the demo accounts.
+   */
+  phoneSignInOnlyFor?: ReadonlySet<string>;
 }
 
 export interface AuthenticatedSession {
@@ -45,8 +53,30 @@ export function createAuthService(deps: AuthDeps) {
   const codeHash = (otpSessionId: string, code: string) => hmacHex(secret, `otp:${otpSessionId}:${code}`);
   const tokenHash = (token: string) => sha256Hex(`session:${secret}:${token}`);
 
+  /** Issues a session cookie token; only its hash is stored. */
+  function startSession(user: UserRow, now: Date, ctx: { userAgent?: string; requestId?: string }, method: 'phone' | 'google') {
+    const nowIso = now.toISOString();
+    const token = randomToken(32);
+    const expiresAt = new Date(now.getTime() + SESSION_TTL_MS);
+    const sessionId = crypto.randomUUID();
+    authRepo.insertUserSession({
+      id: sessionId,
+      user_id: user.id,
+      token_hash: tokenHash(token),
+      user_agent: ctx.userAgent?.slice(0, 200) ?? null,
+      created_at: nowIso,
+      last_seen_at: nowIso,
+      expires_at: expiresAt.toISOString(),
+    });
+    audit.record({ actorType: 'user', actorId: user.id, action: 'auth.login', targetType: 'session', targetId: sessionId, metadata: { method }, requestId: ctx.requestId ?? null });
+    return { token, expiresAt };
+  }
+
   return {
     async sendOtp(phone: string, ctx: { requestId?: string } = {}): Promise<SendOtpResponse> {
+      if (deps.phoneSignInOnlyFor && !deps.phoneSignInOnlyFor.has(phone)) {
+        throw new AppError('FORBIDDEN', 'On this server, phone sign-in is only for the demo accounts. Continue with Google instead.');
+      }
       const now = clock();
       const shared = deps.sharedDemoPhones?.has(phone) ?? false;
       const recent = shared ? [] : authRepo.recentOtpSessions(phone, new Date(now.getTime() - OTP_POLICY.windowMs).toISOString());
@@ -134,20 +164,34 @@ export function createAuthService(deps: AuthDeps) {
         audit.record({ actorType: 'user', actorId: user.id, action: 'user.created', targetType: 'user', targetId: user.id, requestId: ctx.requestId ?? null });
       }
 
-      const token = randomToken(32);
-      const expiresAt = new Date(now.getTime() + SESSION_TTL_MS);
-      const sessionId = crypto.randomUUID();
-      authRepo.insertUserSession({
-        id: sessionId,
-        user_id: user.id,
-        token_hash: tokenHash(token),
-        user_agent: ctx.userAgent?.slice(0, 200) ?? null,
-        created_at: nowIso,
-        last_seen_at: nowIso,
-        expires_at: expiresAt.toISOString(),
-      });
-      audit.record({ actorType: 'user', actorId: user.id, action: 'auth.login', targetType: 'session', targetId: sessionId, requestId: ctx.requestId ?? null });
-      return { user, isNewUser, token, expiresAt };
+      return { user, isNewUser, ...startSession(user, now, ctx, 'phone') };
+    },
+
+    /** Signs in (or up) with a Google ID token from Google Identity Services. */
+    async signInWithGoogle(
+      credential: string,
+      ctx: { userAgent?: string; requestId?: string } = {},
+    ): Promise<{ user: UserRow; isNewUser: boolean; token: string; expiresAt: Date }> {
+      if (!deps.googleVerifier) throw new AppError('NOT_FOUND', 'Google sign-in is not configured on this server');
+      let identity;
+      try {
+        identity = await deps.googleVerifier(credential);
+      } catch (err) {
+        if (err instanceof GoogleTokenError) throw new AppError('UNAUTHENTICATED', 'Google sign-in failed. Please try again.');
+        throw err;
+      }
+      const now = clock();
+      const nowIso = now.toISOString();
+      let user = users.findByGoogleSub(identity.sub);
+      const isNewUser = !user;
+      if (!user) {
+        user = users.createWithGoogle(identity.sub, identity.email, generateCommunityHandle(users.isHandleTaken), nowIso);
+        audit.record({ actorType: 'user', actorId: user.id, action: 'user.created', targetType: 'user', targetId: user.id, metadata: { method: 'google' }, requestId: ctx.requestId ?? null });
+      } else if (user.email !== identity.email) {
+        users.setEmail(user.id, identity.email, nowIso);
+        user = users.findById(user.id)!;
+      }
+      return { user, isNewUser, ...startSession(user, now, ctx, 'google') };
     },
 
     authenticate(token: string): AuthenticatedSession | null {

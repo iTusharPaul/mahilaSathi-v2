@@ -64,6 +64,10 @@ export function createSystemService(deps: { config: AppConfig; db: Db; migration
         environment: config.env,
         demoMode: config.demoMode,
         communityModerationEnabled: config.communityModerationEnabled,
+        auth: {
+          googleClientId: config.google.clientId,
+          phoneSignIn: config.google.clientId && config.otp.provider === 'mock' ? 'demo_accounts_only' : 'open',
+        },
         providers: {
           geoapify: provider(Boolean(config.geoapify.apiKey), 'dev-adapter'),
           nexconn: provider(Boolean(config.nexconn.appKey && config.nexconn.appSecret), 'dev-adapter'),

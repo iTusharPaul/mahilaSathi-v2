@@ -1,6 +1,6 @@
-import { maskPhone, type AuditEvent, type CommunityReviewItem, type ModerationReport } from '@mahilasathi/shared';
+import { maskPhone, type AuditEvent, type CommunityReviewItem, type ModerationReport, type UsageReport } from '@mahilasathi/shared';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { FileClock, Flag, Gavel, KeyRound, LogOut, MapPin, MessageSquareText } from 'lucide-react';
+import { BarChart3, FileClock, Flag, Gavel, KeyRound, LogOut, MapPin, MessageSquareText } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Badge, Button, Card, EmptyState, ErrorState, Notice, Skeleton, TextField, cn } from '@/components/ui';
@@ -10,7 +10,7 @@ import { ApiRequestError } from '@/services/apiClient';
 import { moderationApi, type ModerationApi } from '@/services/moderationApi';
 import { usePublicConfig } from '@/hooks/useSystem';
 
-type Tab = 'reports' | 'community' | 'audit' | 'sms';
+type Tab = 'reports' | 'community' | 'audit' | 'usage' | 'sms';
 const when = (iso: string) => formatDayTime(Date.parse(iso));
 
 /**
@@ -37,12 +37,13 @@ export function ModerationPage() {
         description="Review reports and the audit trail. People appear by pseudonym only."
         action={<Button size="sm" variant="ghost" icon={<LogOut className="h-4 w-4" aria-hidden />} onClick={signOut}>Lock</Button>}
       />
-      <div role="tablist" aria-label="Moderation sections" className={cn('grid gap-1 rounded-xl bg-surface-muted p-1', devSms ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3')}>
+      <div role="tablist" aria-label="Moderation sections" className={cn('grid gap-1 rounded-xl bg-surface-muted p-1', devSms ? 'grid-cols-3 sm:grid-cols-5' : 'grid-cols-2 sm:grid-cols-4')}>
         {(
           [
             ['reports', 'Reports', Flag],
             ['community', 'Area reports', MapPin],
             ['audit', 'Audit log', FileClock],
+            ['usage', 'Usage', BarChart3],
             ...(devSms ? ([['sms', 'SMS outbox', MessageSquareText]] as const) : []),
           ] as const
         ).map(([value, label, Icon]) => (
@@ -62,7 +63,7 @@ export function ModerationPage() {
         ))}
       </div>
       <section role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
-        {tab === 'reports' ? <ReportsPanel api={api} /> : tab === 'community' ? <CommunityPanel api={api} /> : tab === 'sms' ? <SmsPanel api={api} /> : <AuditPanel api={api} />}
+        {tab === 'reports' ? <ReportsPanel api={api} /> : tab === 'community' ? <CommunityPanel api={api} /> : tab === 'sms' ? <SmsPanel api={api} /> : tab === 'usage' ? <UsagePanel api={api} /> : <AuditPanel api={api} />}
       </section>
     </div>
   );
@@ -334,6 +335,84 @@ function SmsPanel({ api }: { api: ModerationApi }) {
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+// ─── Usage (counts only, demo accounts excluded) ──────────────────────────────
+
+function Stat({ label, value, hint }: { label: string; value: number; hint?: string }) {
+  return (
+    <div className="rounded-2xl border border-border/70 bg-surface p-3.5">
+      <p className="text-xs text-fg-muted">{label}</p>
+      <p className="mt-0.5 text-2xl font-semibold tabular-nums">{value.toLocaleString('en-IN')}</p>
+      {hint ? <p className="mt-0.5 text-xs text-fg-muted">{hint}</p> : null}
+    </div>
+  );
+}
+
+function usageSummary(r: UsageReport): string {
+  return [
+    `mahilaSathi usage on ${new Date(r.generatedAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST (demo accounts excluded)`,
+    `Accounts: ${r.accounts.total} (${r.accounts.google} Google, ${r.accounts.phone} phone)`,
+    `Active: ${r.activeUsers.last24h} in the last 24 h, ${r.activeUsers.last7d} in the last 7 days`,
+    `Came back on another day: ${r.returningUsers}`,
+    `Journeys: ${r.journeys.created} created, ${r.journeys.started} started, ${r.journeys.arrived} arrived safely`,
+    `Guardian Circles with a guardian: ${r.guardianCircles}`,
+    `Route comparisons in the last 24 h: ${r.routeComparisonsLast24h}`,
+  ].join('\n');
+}
+
+function UsagePanel({ api }: { api: ModerationApi }) {
+  const usage = useQuery({ queryKey: ['moderation', 'usage'], queryFn: api.usage, refetchInterval: 60_000 });
+  const [copied, setCopied] = useState(false);
+  if (usage.isPending) return <Skeleton className="h-64 w-full" />;
+  if (usage.isError) return <ErrorState message={usage.error.message} onRetry={() => void usage.refetch()} />;
+  const r = usage.data;
+  const peak = Math.max(1, ...r.signUpsByDay.map((d) => d.count));
+
+  return (
+    <div className="space-y-4">
+      <Notice tone="info" title="Real people only">
+        Counts exclude the shared demo accounts and everything they do. No names, numbers, emails or locations are shown here.
+      </Notice>
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+        <Stat label="Accounts" value={r.accounts.total} hint={`${r.accounts.google} Google · ${r.accounts.phone} phone`} />
+        <Stat label="Active, last 24 h" value={r.activeUsers.last24h} />
+        <Stat label="Active, last 7 days" value={r.activeUsers.last7d} />
+        <Stat label="Came back another day" value={r.returningUsers} />
+        <Stat label="Route comparisons, 24 h" value={r.routeComparisonsLast24h} />
+        <Stat label="Journeys started" value={r.journeys.started} hint={`${r.journeys.created} planned · ${r.journeys.arrived} arrived`} />
+        <Stat label="Guardian Circles" value={r.guardianCircles} hint="with at least one guardian" />
+        <Stat label="Notifications on" value={r.usersWithNotifications} />
+        <Stat label="In community channels" value={r.usersInCommunityChannels} />
+        <Stat label="SOS raised" value={r.sosRaised} />
+        <Stat label="Accounts deleted" value={r.accounts.deleted} />
+      </div>
+
+      <Card>
+        <p className="text-sm font-medium">New accounts by day (IST, last 14 days)</p>
+        {r.signUpsByDay.length === 0 ? (
+          <p className="mt-2 text-sm text-fg-muted">No sign-ups yet.</p>
+        ) : (
+          <ul className="mt-3 space-y-1.5">
+            {r.signUpsByDay.map((d) => (
+              <li key={d.day} className="flex items-center gap-2 text-xs">
+                <span className="w-20 shrink-0 tabular-nums text-fg-muted">{new Date(`${d.day}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
+                <span className="h-3 rounded-full bg-primary" style={{ width: `${Math.max(4, (d.count / peak) * 100)}%` }} aria-hidden />
+                <span className="tabular-nums">{d.count}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-fg-muted">
+        <span>Updated {when(r.generatedAt)}</span>
+        <Button size="sm" variant="ghost" onClick={() => void navigator.clipboard?.writeText(usageSummary(r)).then(() => setCopied(true))}>
+          {copied ? 'Copied' : 'Copy as text'}
+        </Button>
+      </div>
     </div>
   );
 }

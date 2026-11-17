@@ -15,3 +15,10 @@ export function normalizeIndianMobile(input: string): string | null {
 export function maskPhone(e164: string): string {
   return `${e164.slice(0, 3)} ••••• •${e164.slice(-4)}`;
 }
+
+/** "priya.sharma@gmail.com" → "p•••@gmail.com". Shown only to the account owner. */
+export function maskEmail(email: string): string {
+  const at = email.lastIndexOf('@');
+  if (at < 1) return '•••';
+  return `${email[0]}•••${email.slice(at)}`;
+}

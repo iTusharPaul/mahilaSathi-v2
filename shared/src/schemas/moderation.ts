@@ -57,3 +57,19 @@ export const auditEventSchema = z.object({
   metadata: z.unknown(),
 });
 export type AuditEvent = z.infer<typeof auditEventSchema>;
+
+/** Aggregate usage for the moderator screen. Counts only; demo accounts are excluded. Days are in IST. */
+export const usageReportSchema = z.object({
+  generatedAt: z.string(),
+  accounts: z.object({ total: z.number().int(), google: z.number().int(), phone: z.number().int(), deleted: z.number().int() }),
+  signUpsByDay: z.array(z.object({ day: z.string(), count: z.number().int() })),
+  activeUsers: z.object({ last24h: z.number().int(), last7d: z.number().int() }),
+  returningUsers: z.number().int(),
+  routeComparisonsLast24h: z.number().int(),
+  journeys: z.object({ created: z.number().int(), started: z.number().int(), arrived: z.number().int() }),
+  guardianCircles: z.number().int(),
+  sosRaised: z.number().int(),
+  usersWithNotifications: z.number().int(),
+  usersInCommunityChannels: z.number().int(),
+});
+export type UsageReport = z.infer<typeof usageReportSchema>;
