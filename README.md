@@ -12,9 +12,10 @@ with other travelling women only with mutual consent, join neighbourhood communi
 
 ## Try it live
 
-**https://mahilasathi.onrender.com** is a public demo with fictional accounts. No SMS is sent and nobody
-outside the app is alerted. If nobody has used it for 15 minutes, the first visit takes about a minute to wake
-the server (free hosting).
+**https://mahilasathi.onrender.com** is a public test server. To use it as yourself, choose **Continue with
+Google**. To look around, use one of the fictional demo accounts listed on the sign-in screen. Emergency SMS is
+simulated: no text reaches a real phone. Guardians who use the app get real push and in-app alerts. If nobody
+has used it for 15 minutes, the first visit takes about a minute to wake the server (free hosting).
 
 **A 2-minute tour, on two phones or browser windows:**
 1. **Phone A:** sign in as **Lotus-42**. Tap the account on the sign-in screen, then **Fill in code**.
@@ -25,7 +26,8 @@ the server (free hosting).
    "DEMO SOS (not real) from Lotus Demo". Respond from Phone B, and Lotus sees the response.
 5. **Community:** each phone has the Guardian Circle chat and neighbourhood channels (Nexconn).
 
-Data resets whenever the server restarts. The demo accounts are always recreated. For running it yourself, see
+Data is kept across restarts: the database is backed up continuously to Supabase Storage
+([docs/persistent-storage.md](docs/persistent-storage.md)). For running it yourself, see
 [Quick start](#quick-start-demo) and [docs/deploy-render.md](docs/deploy-render.md).
 
 ## Status
