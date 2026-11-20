@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { DEMO_ACCOUNTS, meSchema, routePlanSchema, tripSchema } from '@mahilasathi/shared';
+import { createUserRepository } from '../../server/src/repositories/userRepository.js';
 import { DemoModeRequiredError } from '../../server/src/services/demo/demoSeeder.js';
 import { createTestApp, signIn, testClock } from '../helpers/testApp.js';
 
@@ -53,6 +54,34 @@ describe('demo mode', () => {
     // Real users are never labelled demo.
     const real = await signIn(app);
     expect((await real.agent.get('/api/auth/me').expect(200)).body.isDemo).toBe(false);
+  });
+
+  it('refuses to delete a shared demo account', async () => {
+    const { app } = demoApp();
+    await app.services.demo.seed();
+    const lotus = await signInAs(app, 0);
+    const res = await lotus.agent.delete('/api/users/me').send({ confirm: 'DELETE' }).expect(403);
+    expect(res.body.error.message).toMatch(/can’t be deleted/);
+    expect((await lotus.agent.get('/api/auth/me').expect(200)).body.communityHandle).toBe('Lotus-42');
+  });
+
+  it('recreates demo accounts that were deleted, with their pseudonyms and circle', async () => {
+    const { app, db } = demoApp();
+    await app.services.demo.seed();
+    // Deleted before deletion was blocked: the deleted records still hold the pseudonyms.
+    const users = createUserRepository(db);
+    const old = (db.prepare('SELECT id FROM users WHERE is_demo = 1').all() as { id: string }[]).map((r) => r.id);
+    for (const id of old) users.softDelete(id, new Date().toISOString());
+
+    const again = await app.services.demo.seed();
+    expect(again.accounts.map((a) => [a.handle, a.created])).toEqual([['Lotus-42', true], ['Jasmine-17', true], ['Neem-08', true]]);
+    expect(db.prepare("SELECT COUNT(*) AS n FROM users WHERE status = 'deleted' AND community_handle LIKE 'Former-%'").get()).toEqual({ n: 3 });
+
+    const lotus = await signInAs(app, 0);
+    expect((await lotus.agent.get('/api/auth/me').expect(200)).body).toMatchObject({ communityHandle: 'Lotus-42', isDemo: true, onboardingCompleted: true });
+    const circles = (await lotus.agent.get('/api/circles').expect(200)).body.circles;
+    expect(circles.filter((c: { isOwner: boolean }) => c.isOwner)[0].members.map((m: { displayName: string }) => m.displayName)).toEqual(['Lotus Demo', 'Jasmine Demo']);
+    expect((await lotus.agent.get('/api/users/me/emergency-contacts').expect(200)).body.contacts).toHaveLength(1);
   });
 
   it('marks every demo SOS message as not a real emergency', async () => {

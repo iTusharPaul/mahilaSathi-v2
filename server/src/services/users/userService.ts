@@ -137,6 +137,10 @@ export function createUserService(deps: {
     },
 
     deleteAccount(userId: string, requestId?: string): void {
+      // Demo accounts are shared by everyone trying the public server: one visitor must not remove them for all.
+      if (users.findById(userId)?.is_demo === 1) {
+        throw new AppError('FORBIDDEN', 'Demo accounts are shared by everyone trying mahilaSathi, so they can’t be deleted. Continue with Google to have an account of your own.');
+      }
       users.softDelete(userId, nowIso());
       audit.record({ actorType: 'user', actorId: userId, action: 'user.deleted', targetType: 'user', targetId: userId, requestId: requestId ?? null });
     },

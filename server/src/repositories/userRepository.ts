@@ -59,6 +59,17 @@ export function createUserRepository(db: Db) {
       return byId.get(id) as UserRow;
     },
 
+    /**
+     * Deleted accounts keep their pseudonym so moderation history still reads correctly. To reuse a pseudonym
+     * (the fictional demo accounts), the deleted account's copy is renamed to "Former-<id>" first.
+     * Active accounts are never touched.
+     */
+    releaseHandleFromDeleted(handle: string, now: string): void {
+      db.prepare(
+        "UPDATE users SET community_handle = 'Former-' || substr(replace(id, '-', ''), 1, 10), updated_at = ? WHERE community_handle = ? AND status = 'deleted'",
+      ).run(now, handle);
+    },
+
     /** A new account identified by a Google account instead of a phone number. */
     createWithGoogle(googleSub: string, email: string | null, handle: string, now: string): UserRow {
       const id = crypto.randomUUID();

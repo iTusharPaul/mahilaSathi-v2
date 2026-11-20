@@ -48,7 +48,11 @@ export function ProfilePage() {
       >
         Sign out
       </Button>
-      <DeleteAccountCard />
+      {me.data.isDemo ? (
+        <p className="px-1 text-xs text-fg-muted">Demo accounts are shared by everyone trying mahilaSathi, so they can’t be deleted. Continue with Google to have an account of your own.</p>
+      ) : (
+        <DeleteAccountCard />
+      )}
       <p className="text-center text-xs text-fg-muted">
         Moderating this server? <Link to="/moderation" className="font-medium text-primary underline">Moderator tools</Link> (admin token required)
       </p>
