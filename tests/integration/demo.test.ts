@@ -84,6 +84,21 @@ describe('demo mode', () => {
     expect((await lotus.agent.get('/api/users/me/emergency-contacts').expect(200)).body.contacts).toHaveLength(1);
   });
 
+  it('gives a demo pseudonym back when someone signed in to a deleted demo account’s number', async () => {
+    const { app, db } = demoApp();
+    await app.services.demo.seed();
+    const users = createUserRepository(db);
+    const lotusId = (db.prepare("SELECT id FROM users WHERE community_handle = 'Lotus-42'").get() as { id: string }).id;
+    users.softDelete(lotusId, new Date().toISOString());
+    // A visitor signs in with Lotus's number before the next restart: an ordinary account, random pseudonym.
+    const visitor = await signInAs(app, 0);
+    expect(visitor.user.communityHandle).not.toBe('Lotus-42');
+
+    await app.services.demo.seed();
+    const me = (await visitor.agent.get('/api/auth/me').expect(200)).body;
+    expect(me).toMatchObject({ id: visitor.user.id, communityHandle: 'Lotus-42', isDemo: true, displayName: 'Lotus Demo' });
+  });
+
   it('marks every demo SOS message as not a real emergency', async () => {
     const { app, db } = demoApp();
     await app.services.demo.seed();

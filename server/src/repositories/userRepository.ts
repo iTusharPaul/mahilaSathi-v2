@@ -70,6 +70,14 @@ export function createUserRepository(db: Db) {
       ).run(now, handle);
     },
 
+    /** Renames an account's pseudonym. Returns false if another account already uses it. */
+    setHandle(id: string, handle: string, now: string): boolean {
+      const taken = db.prepare('SELECT 1 FROM users WHERE community_handle = ? AND id != ?').get(handle, id);
+      if (taken) return false;
+      db.prepare('UPDATE users SET community_handle = ?, updated_at = ? WHERE id = ?').run(handle, now, id);
+      return true;
+    },
+
     /** A new account identified by a Google account instead of a phone number. */
     createWithGoogle(googleSub: string, email: string | null, handle: string, now: string): UserRow {
       const id = crypto.randomUUID();

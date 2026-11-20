@@ -45,11 +45,16 @@ export function createDemoSeeder(deps: {
     const phone = normalizeIndianMobile(a.phone)!;
     let user = users.findByPhone(phone);
     const created = !user;
+    const now = new Date().toISOString();
     if (!user) {
       // If someone deleted a demo account, its pseudonym is still held by the deleted record: free it first.
-      const now = new Date().toISOString();
       users.releaseHandleFromDeleted(a.handle, now);
       user = users.create(phone, a.handle, now);
+    } else if (user.community_handle !== a.handle) {
+      // The number was signed in to after a demo account was deleted, creating an account with a random
+      // pseudonym. Give it the demo pseudonym back.
+      users.releaseHandleFromDeleted(a.handle, now);
+      users.setHandle(user.id, a.handle, now);
     }
     users.markDemo(user.id);
     userService.updateMe(users.findById(user.id)!, { displayName: a.displayName, homeNeighbourhoodId: a.homeNeighbourhoodId, onboardingCompleted: true });
